@@ -148,7 +148,7 @@ export async function rankPlaces(
   const res = await getLLM().generate({
     system: SYSTEM,
     prompt: `Rank the top places to visit in the "${region.name}" region of ${destination}
-for these categories: ${categoryIds.join(", ")}. Return up to 6 places per category, each
+for these categories: ${categoryIds.join(", ")}. Return up to 4 places per category, each
 with a rank (1 = best within its category), a vivid description, best season, highlights,
 real coordinates, an image search query, and source references.${researchBlock}`,
     schema: RankedPlacesResponseSchema,

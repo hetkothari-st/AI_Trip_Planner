@@ -21,7 +21,8 @@ export interface LLMProvider {
   }): Promise<T>;
 }
 
-const MODEL = "claude-sonnet-4-6";
+// Haiku 4.5: fast + capable enough for structured travel data (Sonnet ran ~40s/call).
+const MODEL = "claude-haiku-4-5";
 
 class AnthropicProvider implements LLMProvider {
   readonly name = "anthropic";
