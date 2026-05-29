@@ -1,0 +1,103 @@
+// AI Trip Planner data model.
+// SQLite for local dev; switch `provider`/`DATABASE_URL` to Postgres for production.
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+// A trip draft. No auth in the MVP — a trip is identified by its id (stored client-side).
+model Trip {
+  id          String   @id @default(cuid())
+  destination String
+  region      String?
+  // Journey routing (Phases 8–9)
+  startStopId String?
+  endStopId   String?
+  optimized   Boolean  @default(false)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  stops TripStop[]
+}
+
+// A selected place/city on the trip. Ordered for the roadmap.
+model TripStop {
+  id         String  @id @default(cuid())
+  tripId     String
+  trip       Trip    @relation(fields: [tripId], references: [id], onDelete: Cascade)
+  name       String
+  category   String? // which category bucket it was picked from
+  lat        Float
+  lng        Float
+  order      Int     @default(0)
+  days       Int     @default(1)
+  // JSON blobs filled in by later phases
+  miniItinerary String? // Phase 5
+  notes         String?
+
+  spots           Spot[]
+  hotelSelection  HotelSelection?
+  costItems       CostItem[]
+  activities      Activity[]
+
+  @@index([tripId])
+}
+
+// Recommended spots within a city (Phase 5).
+model Spot {
+  id          String   @id @default(cuid())
+  tripStopId  String
+  tripStop    TripStop @relation(fields: [tripStopId], references: [id], onDelete: Cascade)
+  name        String
+  description String?
+  durationMin Int?
+  category    String? // sightseeing | food | activity
+  lat         Float?
+  lng         Float?
+
+  @@index([tripStopId])
+}
+
+// Hotel chosen for a city (Phase 6).
+model HotelSelection {
+  id            String   @id @default(cuid())
+  tripStopId    String   @unique
+  tripStop      TripStop @relation(fields: [tripStopId], references: [id], onDelete: Cascade)
+  name          String
+  stars         Int?
+  pricePerNight Float?
+  currency      String   @default("INR")
+  amenities     String? // JSON array
+  deepLinks     String? // JSON map of site -> url
+  bestPriceSite String?
+}
+
+// Real-time cost calculator line items (Phase 7).
+model CostItem {
+  id         String   @id @default(cuid())
+  tripStopId String?
+  tripStop   TripStop? @relation(fields: [tripStopId], references: [id], onDelete: Cascade)
+  label      String
+  category   String   // hotel | travel | activity | food | misc
+  amount     Float
+  currency   String   @default("INR")
+
+  @@index([tripStopId])
+}
+
+// Selected activities (Phase 10).
+model Activity {
+  id          String   @id @default(cuid())
+  tripStopId  String
+  tripStop    TripStop @relation(fields: [tripStopId], references: [id], onDelete: Cascade)
+  name        String
+  provider    String?
+  description String?
+  price       Float?
+
+  @@index([tripStopId])
+}

@@ -1,0 +1,64 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  :root {
+    --background: 40 33% 98%;
+    --foreground: 200 25% 12%;
+
+    --card: 0 0% 100%;
+    --card-foreground: 200 25% 12%;
+
+    --popover: 0 0% 100%;
+    --popover-foreground: 200 25% 12%;
+
+    /* deep teal — calm, premium travel feel */
+    --primary: 187 64% 26%;
+    --primary-foreground: 40 33% 98%;
+
+    --secondary: 35 30% 92%;
+    --secondary-foreground: 200 25% 16%;
+
+    --muted: 40 20% 94%;
+    --muted-foreground: 200 12% 42%;
+
+    /* warm amber accent */
+    --accent: 32 90% 52%;
+    --accent-foreground: 0 0% 100%;
+
+    --destructive: 0 72% 48%;
+    --destructive-foreground: 0 0% 100%;
+
+    --border: 40 18% 88%;
+    --input: 40 18% 86%;
+    --ring: 187 64% 30%;
+
+    --radius: 0.75rem;
+  }
+}
+
+@layer base {
+  * {
+    @apply border-border;
+  }
+  body {
+    @apply bg-background text-foreground;
+    font-feature-settings: "rlig" 1, "calt" 1;
+  }
+}
+
+/* subtle hero gradient + glassy surfaces used across the wizard */
+.hero-gradient {
+  background:
+    radial-gradient(1200px 600px at 70% -10%, hsl(187 64% 26% / 0.18), transparent 60%),
+    radial-gradient(900px 500px at 10% 10%, hsl(32 90% 52% / 0.12), transparent 55%);
+}
+
+.glass {
+  background: hsl(0 0% 100% / 0.72);
+  backdrop-filter: blur(10px);
+}
+
+/* mapbox-gl base styles (imported here so the bundler picks them up) */
+@import "mapbox-gl/dist/mapbox-gl.css";
