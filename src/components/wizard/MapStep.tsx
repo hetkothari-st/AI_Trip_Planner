@@ -191,7 +191,7 @@ export function MapStep() {
                 </div>
               </dl>
               <p className="mt-3 text-xs text-muted-foreground">
-                Route source: {route.source === "mapbox" ? "Mapbox Directions" : "estimated"}
+                Route source: {route.source === "osrm" ? "OSRM live roads" : "estimated"}
               </p>
             </div>
           )}

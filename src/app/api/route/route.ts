@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { z } from "zod";
-import { getRoute, optimizeOrder, type Waypoint } from "@/lib/maps";
+import { getRoute, optimizeRoute, type Waypoint } from "@/lib/maps";
 
 export const runtime = "nodejs";
 
@@ -22,12 +22,11 @@ export async function POST(req: Request) {
   if (!parsed.success) {
     return NextResponse.json({ error: "Invalid stops" }, { status: 400 });
   }
-  let stops: Waypoint[] = parsed.data.stops;
-  let order = stops.map((s) => s.name);
+  const stops: Waypoint[] = parsed.data.stops;
   if (parsed.data.optimize) {
-    stops = optimizeOrder(stops, parsed.data.startName, parsed.data.endName);
-    order = stops.map((s) => s.name);
+    const { ordered, route } = await optimizeRoute(stops, parsed.data.startName, parsed.data.endName);
+    return NextResponse.json({ route, order: ordered.map((s) => s.name) });
   }
   const route = await getRoute(stops);
-  return NextResponse.json({ route, order });
+  return NextResponse.json({ route, order: stops.map((s) => s.name) });
 }

@@ -1,4 +1,3 @@
-import { hasMapbox, mapboxToken } from "@/lib/env";
 import { haversineKm } from "@/lib/utils";
 
 export interface LatLng {
@@ -20,72 +19,125 @@ export interface RouteResult {
   legs: RouteLeg[];
   totalDistanceKm: number;
   totalDurationSec: number;
-  // GeoJSON LineString coordinates [lng, lat][] for drawing on the map
-  geometry: [number, number][];
-  source: "mapbox" | "estimate";
+  geometry: [number, number][]; // [lng, lat][]
+  source: "osrm" | "estimate";
 }
 
+// Free, key-less public OSRM server (driving profile).
+const OSRM = "https://router.project-osrm.org";
 const AVG_ROAD_KMH = 40; // hill-road average for the estimate fallback
 
-/** Driving route through the stops in their given order. Falls back to a haversine estimate. */
+function coordString(stops: Waypoint[]): string {
+  return stops.map((s) => `${s.lng},${s.lat}`).join(";");
+}
+
+/** Driving route through the stops in their given order (OSRM, haversine fallback). */
 export async function getRoute(stops: Waypoint[]): Promise<RouteResult> {
   if (stops.length < 2) {
     return { legs: [], totalDistanceKm: 0, totalDurationSec: 0, geometry: stops.map((s) => [s.lng, s.lat]), source: "estimate" };
   }
-  if (hasMapbox()) {
+  try {
+    const url = `${OSRM}/route/v1/driving/${coordString(stops)}?overview=full&geometries=geojson&annotations=false`;
+    const res = await fetch(url);
+    if (!res.ok) throw new Error(`osrm route ${res.status}`);
+    const data = (await res.json()) as {
+      routes?: { distance: number; duration: number; legs: { distance: number; duration: number }[]; geometry: { coordinates: [number, number][] } }[];
+    };
+    const route = data.routes?.[0];
+    if (!route) throw new Error("no route");
+    return {
+      legs: route.legs.map((leg, i) => ({
+        from: stops[i].name,
+        to: stops[i + 1].name,
+        distanceKm: leg.distance / 1000,
+        durationSec: leg.duration,
+      })),
+      totalDistanceKm: route.distance / 1000,
+      totalDurationSec: route.duration,
+      geometry: route.geometry.coordinates,
+      source: "osrm",
+    };
+  } catch (err) {
+    console.error("[maps] OSRM route failed, estimating:", err);
+    return estimateRoute(stops);
+  }
+}
+
+/**
+ * Optimal stop ordering + route via OSRM Trip service (real TSP). Fixes the chosen
+ * start first and optional end last. Falls back to nearest-neighbour + estimate.
+ */
+export async function optimizeRoute(
+  stops: Waypoint[],
+  startName?: string,
+  endName?: string,
+): Promise<{ ordered: Waypoint[]; route: RouteResult }> {
+  // arrange so start is first and end is last (OSRM source=first / destination=last)
+  let arranged = [...stops];
+  if (startName) {
+    const i = arranged.findIndex((s) => s.name === startName);
+    if (i > 0) arranged = [arranged[i], ...arranged.slice(0, i), ...arranged.slice(i + 1)];
+  }
+  if (endName) {
+    const i = arranged.findIndex((s) => s.name === endName);
+    if (i >= 0 && i !== arranged.length - 1)
+      arranged = [...arranged.slice(0, i), ...arranged.slice(i + 1), arranged[i]];
+  }
+
+  if (arranged.length >= 3) {
     try {
-      return await mapboxRoute(stops);
+      const params = new URLSearchParams({
+        overview: "full",
+        geometries: "geojson",
+        roundtrip: "false",
+        source: "first",
+      });
+      if (endName) params.set("destination", "last");
+      const url = `${OSRM}/trip/v1/driving/${coordString(arranged)}?${params}`;
+      const res = await fetch(url);
+      if (!res.ok) throw new Error(`osrm trip ${res.status}`);
+      const data = (await res.json()) as {
+        trips?: { distance: number; duration: number; legs: { distance: number; duration: number }[]; geometry: { coordinates: [number, number][] } }[];
+        waypoints?: { waypoint_index: number }[];
+      };
+      const trip = data.trips?.[0];
+      if (!trip || !data.waypoints) throw new Error("no trip");
+      // reorder arranged stops by their optimized waypoint_index
+      const ordered = arranged
+        .map((s, i) => ({ s, idx: data.waypoints![i].waypoint_index }))
+        .sort((a, b) => a.idx - b.idx)
+        .map((x) => x.s);
+      return {
+        ordered,
+        route: {
+          legs: trip.legs.map((leg, i) => ({
+            from: ordered[i].name,
+            to: ordered[i + 1].name,
+            distanceKm: leg.distance / 1000,
+            durationSec: leg.duration,
+          })),
+          totalDistanceKm: trip.distance / 1000,
+          totalDurationSec: trip.duration,
+          geometry: trip.geometry.coordinates,
+          source: "osrm",
+        },
+      };
     } catch (err) {
-      console.error("[maps] mapbox route failed, estimating:", err);
+      console.error("[maps] OSRM trip failed, using nearest-neighbour:", err);
     }
   }
-  return estimateRoute(stops);
+
+  const ordered = optimizeOrder(stops, startName, endName);
+  return { ordered, route: await getRoute(ordered) };
 }
 
-async function mapboxRoute(stops: Waypoint[]): Promise<RouteResult> {
-  const coords = stops.map((s) => `${s.lng},${s.lat}`).join(";");
-  const url = new URL(
-    `https://api.mapbox.com/directions/v5/mapbox/driving/${coords}`,
-  );
-  url.searchParams.set("geometries", "geojson");
-  url.searchParams.set("overview", "full");
-  url.searchParams.set("access_token", mapboxToken());
-
-  const res = await fetch(url);
-  if (!res.ok) throw new Error(`mapbox directions ${res.status}`);
-  const data = (await res.json()) as {
-    routes?: { distance: number; duration: number; legs: { distance: number; duration: number }[]; geometry: { coordinates: [number, number][] } }[];
-  };
-  const route = data.routes?.[0];
-  if (!route) throw new Error("no route");
-
-  return {
-    legs: route.legs.map((leg, i) => ({
-      from: stops[i].name,
-      to: stops[i + 1].name,
-      distanceKm: leg.distance / 1000,
-      durationSec: leg.duration,
-    })),
-    totalDistanceKm: route.distance / 1000,
-    totalDurationSec: route.duration,
-    geometry: route.geometry.coordinates,
-    source: "mapbox",
-  };
-}
-
-function estimateRoute(stops: Waypoint[]): RouteResult {
+export function estimateRoute(stops: Waypoint[]): RouteResult {
   const legs: RouteLeg[] = [];
   let totalKm = 0;
   for (let i = 0; i < stops.length - 1; i++) {
-    // 1.3x crow-flies factor to approximate winding roads
-    const km = haversineKm(stops[i], stops[i + 1]) * 1.3;
+    const km = haversineKm(stops[i], stops[i + 1]) * 1.3; // winding-road factor
     totalKm += km;
-    legs.push({
-      from: stops[i].name,
-      to: stops[i + 1].name,
-      distanceKm: km,
-      durationSec: (km / AVG_ROAD_KMH) * 3600,
-    });
+    legs.push({ from: stops[i].name, to: stops[i + 1].name, distanceKm: km, durationSec: (km / AVG_ROAD_KMH) * 3600 });
   }
   return {
     legs,
@@ -96,15 +148,8 @@ function estimateRoute(stops: Waypoint[]): RouteResult {
   };
 }
 
-/**
- * Phase 9 stub — optimal stop ordering (TSP). Implemented as nearest-neighbour now so
- * the interface is stable; will swap to the Mapbox Optimization API in Phase 9.
- */
-export function optimizeOrder(
-  stops: Waypoint[],
-  startName?: string,
-  _endName?: string,
-): Waypoint[] {
+/** Nearest-neighbour fallback ordering (used when OSRM is unavailable). */
+export function optimizeOrder(stops: Waypoint[], startName?: string, _endName?: string): Waypoint[] {
   if (stops.length < 3) return stops;
   const remaining = [...stops];
   const start = startName ? remaining.find((s) => s.name === startName) ?? remaining[0] : remaining[0];

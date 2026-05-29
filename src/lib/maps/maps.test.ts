@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { getRoute, optimizeOrder, type Waypoint } from "./index";
+import { estimateRoute, optimizeOrder, type Waypoint } from "./index";
 
 const STOPS: Waypoint[] = [
   { name: "A", lat: 30.0, lng: 78.0 },
@@ -21,9 +21,9 @@ describe("optimizeOrder", () => {
   });
 });
 
-describe("getRoute (estimate fallback)", () => {
-  it("produces legs and totals without a Mapbox token", async () => {
-    const route = await getRoute(STOPS);
+describe("estimateRoute (offline fallback)", () => {
+  it("produces legs and totals without any network", () => {
+    const route = estimateRoute(STOPS);
     expect(route.source).toBe("estimate");
     expect(route.legs).toHaveLength(2);
     expect(route.totalDistanceKm).toBeGreaterThan(0);

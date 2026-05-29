@@ -19,6 +19,4 @@ export const hasYouTube = () => env.youtubeKey.length > 0;
 export const hasReddit = () => env.redditId.length > 0 && env.redditSecret.length > 0;
 export const hasUnsplash = () => env.unsplashKey.length > 0;
 
-/** The Mapbox token is public by design (used in the browser). */
-export const mapboxToken = () => process.env.NEXT_PUBLIC_MAPBOX_TOKEN ?? "";
-export const hasMapbox = () => mapboxToken().length > 0;
+// Map tiles (OpenFreeMap) and routing (OSRM) are key-less — no token needed.
