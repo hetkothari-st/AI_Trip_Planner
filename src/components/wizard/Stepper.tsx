@@ -4,7 +4,7 @@ import { Check } from "lucide-react";
 import { cn } from "@/lib/utils";
 import type { WizardStep } from "@/lib/store/trip";
 
-const STEPS = ["Destination", "Region", "Style", "Places", "Map"] as const;
+const STEPS = ["Destination", "Region", "Style", "Places", "Cities", "Map"] as const;
 
 export function Stepper({
   step,

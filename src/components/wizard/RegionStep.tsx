@@ -7,7 +7,7 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { cn } from "@/lib/utils";
 import { useTrip } from "@/lib/store/trip";
-import { SEASON_EMOJI, SEASON_LABEL, SEASON_ORDER } from "@/lib/season";
+import { SEASON_EMOJI, SEASON_MONTHS, SEASON_ORDER, seasonBadge } from "@/lib/season";
 import type { Region } from "@/lib/ai/schemas";
 
 export function RegionStep() {
@@ -69,9 +69,7 @@ export function RegionStep() {
               <CardHeader>
                 <div className="flex items-start justify-between gap-2">
                   <CardTitle className="font-serif text-xl">{r.name}</CardTitle>
-                  <Badge variant="secondary">
-                    {SEASON_EMOJI[r.bestSeason]} {SEASON_LABEL[r.bestSeason]}
-                  </Badge>
+                  <Badge variant="secondary">{seasonBadge(r.bestSeason)}</Badge>
                 </div>
                 <p className="text-sm text-muted-foreground">{r.blurb}</p>
               </CardHeader>
@@ -95,7 +93,10 @@ export function RegionStep() {
                               style={{ height: `${v}%` }}
                             />
                           </div>
-                          <span className="text-[10px] text-muted-foreground">{SEASON_EMOJI[s]}</span>
+                          <span className="text-[11px] leading-none">{SEASON_EMOJI[s]}</span>
+                          <span className="text-[9px] leading-tight text-muted-foreground">
+                            {SEASON_MONTHS[s]}
+                          </span>
                         </div>
                       );
                     })}

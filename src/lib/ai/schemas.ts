@@ -69,3 +69,31 @@ export type RankedPlace = z.infer<typeof RankedPlaceSchema>;
 export const RankedPlacesResponseSchema = z.object({
   places: z.array(RankedPlaceSchema).min(1),
 });
+
+/** Phase 5 — a spot/activity within a city's mini-itinerary. */
+export const CitySpotSchema = z.object({
+  name: z.string(),
+  description: z.string(),
+  durationMin: z.number().int().min(15),
+  category: z.enum(["sightseeing", "nature", "activity", "food", "spiritual"]),
+});
+export type CitySpot = z.infer<typeof CitySpotSchema>;
+
+/** Phase 5 — a recommended food place for a city. */
+export const FoodPlaceSchema = z.object({
+  name: z.string(),
+  dish: z.string(),
+  note: z.string().optional(),
+});
+export type FoodPlace = z.infer<typeof FoodPlaceSchema>;
+
+/** Phase 5 — full mini-itinerary for one city. */
+export const CityPlanSchema = z.object({
+  city: z.string(),
+  recommendedDays: z.number().int().min(1).max(10),
+  famousFor: z.array(z.string()).min(1),
+  localFood: z.array(z.string()).min(1),
+  spots: z.array(CitySpotSchema).min(1),
+  foodPlaces: z.array(FoodPlaceSchema),
+});
+export type CityPlan = z.infer<typeof CityPlanSchema>;

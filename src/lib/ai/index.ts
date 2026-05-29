@@ -1,10 +1,12 @@
 import { getLLM } from "./provider";
-import { mockCategories, mockPlaces, mockRegions } from "./mock";
+import { mockCategories, mockCityPlan, mockPlaces, mockRegions } from "./mock";
 import {
   CategoriesResponseSchema,
+  CityPlanSchema,
   RankedPlacesResponseSchema,
   RegionsResponseSchema,
   type Category,
+  type CityPlan,
   type RankedPlace,
   type Region,
 } from "./schemas";
@@ -155,4 +157,58 @@ real coordinates, an image search query, and source references.${researchBlock}`
   return res.places;
 }
 
-export type { Region, Category, RankedPlace } from "./schemas";
+const cityPlanJsonSchema = {
+  type: "object",
+  properties: {
+    city: { type: "string" },
+    recommendedDays: { type: "number" },
+    famousFor: { type: "array", items: { type: "string" } },
+    localFood: { type: "array", items: { type: "string" } },
+    spots: {
+      type: "array",
+      items: {
+        type: "object",
+        properties: {
+          name: { type: "string" },
+          description: { type: "string" },
+          durationMin: { type: "number" },
+          category: { type: "string", enum: ["sightseeing", "nature", "activity", "food", "spiritual"] },
+        },
+        required: ["name", "description", "durationMin", "category"],
+      },
+    },
+    foodPlaces: {
+      type: "array",
+      items: {
+        type: "object",
+        properties: { name: { type: "string" }, dish: { type: "string" }, note: { type: "string" } },
+        required: ["name", "dish"],
+      },
+    },
+  },
+  required: ["city", "recommendedDays", "famousFor", "localFood", "spots", "foodPlaces"],
+};
+
+/** Phase 5 — a city's mini-itinerary: spots, durations, food, what it's famous for. */
+export async function generateCityPlan(
+  destination: string,
+  city: string,
+  days: number,
+  research?: ResearchDigest,
+): Promise<CityPlan> {
+  const researchBlock = research?.notes?.length
+    ? `\n\nGround your picks in these research signals:\n${research.notes.map((n) => `- ${n}`).join("\n")}`
+    : "";
+  return getLLM().generate({
+    system: SYSTEM,
+    prompt: `Build a ${days}-day mini-itinerary for ${city} in ${destination}. Recommend the
+best spots to visit (with realistic visit durations in minutes and a category), the best
+local food places, what dishes the area is famous for, and a recommended number of days.
+Order spots so they form a sensible daily routine (about 3 per day).${researchBlock}`,
+    schema: CityPlanSchema,
+    jsonSchema: cityPlanJsonSchema,
+    mock: () => mockCityPlan(destination, city, days),
+  });
+}
+
+export type { Region, Category, RankedPlace, CityPlan } from "./schemas";

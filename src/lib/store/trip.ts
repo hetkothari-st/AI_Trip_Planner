@@ -2,10 +2,10 @@
 
 import { create } from "zustand";
 import { persist } from "zustand/middleware";
-import type { Category, RankedPlace, Region } from "@/lib/ai/schemas";
+import type { Category, CityPlan, RankedPlace, Region } from "@/lib/ai/schemas";
 import type { RouteResult } from "@/lib/maps";
 
-export type WizardStep = 0 | 1 | 2 | 3 | 4;
+export type WizardStep = 0 | 1 | 2 | 3 | 4 | 5;
 
 export interface SelectedPlace extends RankedPlace {
   days: number;
@@ -26,6 +26,8 @@ interface TripState {
   places: RankedPlace[]; // includes optional imageUrl attached by the API
   selected: Record<string, SelectedPlace>; // keyed by place id
 
+  cityPlans: Record<string, CityPlan>; // Phase 5, keyed by place id
+
   route: RouteResult | null;
 
   // navigation
@@ -42,6 +44,7 @@ interface TripState {
   setPlaces: (p: RankedPlace[]) => void;
   togglePlace: (p: RankedPlace) => void;
   setDays: (id: string, days: number) => void;
+  setCityPlan: (id: string, plan: CityPlan) => void;
   setRoute: (r: RouteResult | null) => void;
 
   reset: () => void;
@@ -57,6 +60,7 @@ const initial = {
   selectedCategoryIds: [],
   places: [],
   selected: {},
+  cityPlans: {},
   route: null,
 };
 
@@ -66,7 +70,7 @@ export const useTrip = create<TripState>()(
       ...initial,
 
       goTo: (step) => set({ step }),
-      next: () => set({ step: Math.min(4, get().step + 1) as WizardStep }),
+      next: () => set({ step: Math.min(5, get().step + 1) as WizardStep }),
       back: () => set({ step: Math.max(0, get().step - 1) as WizardStep }),
 
       setDestination: (destination) => set({ destination }),
@@ -97,6 +101,8 @@ export const useTrip = create<TripState>()(
           if (!sel) return {};
           return { selected: { ...s.selected, [id]: { ...sel, days: Math.max(1, days) } } };
         }),
+      setCityPlan: (id, plan) =>
+        set((s) => ({ cityPlans: { ...s.cityPlans, [id]: plan } })),
       setRoute: (route) => set({ route }),
 
       reset: () => set({ ...initial }),

@@ -80,7 +80,7 @@ export function PlacesStep() {
           days planned
         </div>
         <Button size="lg" disabled={selectedCount < 1} onClick={next}>
-          View route on map <ArrowRight className="size-4" />
+          Plan each city <ArrowRight className="size-4" />
         </Button>
       </div>
     </div>

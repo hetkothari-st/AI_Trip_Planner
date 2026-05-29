@@ -10,6 +10,7 @@ import { DestinationStep } from "@/components/wizard/DestinationStep";
 import { RegionStep } from "@/components/wizard/RegionStep";
 import { CategoryStep } from "@/components/wizard/CategoryStep";
 import { PlacesStep } from "@/components/wizard/PlacesStep";
+import { CitiesStep } from "@/components/wizard/CitiesStep";
 import { MapStep } from "@/components/wizard/MapStep";
 import { useTrip, type WizardStep } from "@/lib/store/trip";
 
@@ -26,7 +27,7 @@ export default function PlanPage() {
       : !store.places.length
         ? 2
         : Object.keys(store.selected).length
-          ? 4
+          ? 5
           : 3;
 
   return (
@@ -67,7 +68,8 @@ export default function PlanPage() {
             {store.step === 1 && <RegionStep />}
             {store.step === 2 && <CategoryStep />}
             {store.step === 3 && <PlacesStep />}
-            {store.step === 4 && <MapStep />}
+            {store.step === 4 && <CitiesStep />}
+            {store.step === 5 && <MapStep />}
           </div>
         )}
       </main>

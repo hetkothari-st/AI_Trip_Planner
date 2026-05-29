@@ -4,7 +4,7 @@ import { Check, Plus, Star, Youtube, Globe, MessageSquare } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
-import { SEASON_EMOJI, SEASON_LABEL } from "@/lib/season";
+import { seasonBadge } from "@/lib/season";
 import type { RankedPlace, Source } from "@/lib/ai/schemas";
 
 const SOURCE_ICON: Record<Source["kind"], typeof Globe> = {
@@ -46,7 +46,7 @@ export function PlaceBanner({
           #{place.rank} ranked
         </Badge>
         <Badge variant="secondary" className="absolute right-3 top-3">
-          {SEASON_EMOJI[place.bestSeason]} {SEASON_LABEL[place.bestSeason]}
+          {seasonBadge(place.bestSeason)}
         </Badge>
       </div>
 
