@@ -21,9 +21,10 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { HotelPanel } from "@/components/hotels/HotelPanel";
 import { ActivitiesPanel } from "@/components/activities/ActivitiesPanel";
+import { CityMiniMap } from "@/components/map/CityMiniMap";
 import { CostSummary } from "@/components/cost/CostSummary";
 import { cn } from "@/lib/utils";
-import { useTrip, selectedList, suggestedDays } from "@/lib/store/trip";
+import { useTrip, selectedList, selectedSpotsOf, suggestedDays } from "@/lib/store/trip";
 import { formatINR } from "@/lib/cost";
 import type { CitySpot } from "@/lib/ai/schemas";
 
@@ -35,7 +36,7 @@ const SPOT_ICON: Record<CitySpot["category"], typeof MapPin> = {
   spiritual: Flame,
 };
 
-type Tab = "itinerary" | "hotels" | "activities";
+type Tab = "itinerary" | "hotels" | "activities" | "map";
 
 function fmtMin(min: number): string {
   const h = Math.floor(min / 60);
@@ -138,9 +139,10 @@ export function CitiesStep() {
                 <div className="flex gap-1 border-b px-4 pt-2">
                   {(
                     [
-                      { id: "itinerary" as Tab, label: "Itinerary", icon: MapTab },
+                      { id: "itinerary" as Tab, label: "Itinerary", icon: Sparkles },
                       { id: "hotels" as Tab, label: hotel ? "Hotel ✓" : "Hotels", icon: BedDouble },
                       { id: "activities" as Tab, label: acts.length ? `Activities (${acts.length})` : "Activities", icon: Mountain },
+                      { id: "map" as Tab, label: "Map", icon: MapTab },
                     ]
                   ).map((t) => (
                     <button
@@ -269,6 +271,21 @@ export function CitiesStep() {
                   )}
                   {tab === "activities" && (
                     <ActivitiesPanel placeId={p.id} city={p.name} cityLat={p.lat} cityLng={p.lng} />
+                  )}
+                  {tab === "map" && (
+                    <CityMiniMap
+                      hotel={hotel ? { name: hotel.name, lat: hotel.lat, lng: hotel.lng } : undefined}
+                      spots={
+                        plan
+                          ? selectedSpotsOf(store, p.id, plan)
+                              .filter((s) => s.lat != null && s.lng != null)
+                              .map((s) => ({ name: s.name, lat: s.lat!, lng: s.lng! }))
+                          : []
+                      }
+                      activities={acts
+                        .filter((a) => a.lat != null && a.lng != null)
+                        .map((a) => ({ name: a.name, lat: a.lat!, lng: a.lng! }))}
+                    />
                   )}
                 </div>
 
