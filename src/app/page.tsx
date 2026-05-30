@@ -29,9 +29,14 @@ export default function Home() {
           <Compass className="size-6 text-primary" />
           <span className="font-serif text-xl font-semibold tracking-tight">Voyager</span>
         </div>
-        <Button asChild variant="ghost">
-          <Link href="/plan">Open planner</Link>
-        </Button>
+        <div className="flex items-center gap-1">
+          <Button asChild variant="ghost">
+            <Link href="/travels">My travels</Link>
+          </Button>
+          <Button asChild variant="ghost">
+            <Link href="/plan">Open planner</Link>
+          </Button>
+        </div>
       </header>
 
       {/* Hero */}

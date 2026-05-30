@@ -1,17 +1,20 @@
 "use client";
 
 import { useState } from "react";
-import { Loader2, Check, ArrowLeft } from "lucide-react";
+import { Loader2, Check, ArrowLeft, BadgeCheck } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { cn } from "@/lib/utils";
 import { useTrip } from "@/lib/store/trip";
+import { useTravels } from "@/lib/store/travels";
+import { visitedInRegion, remainingSamplePlaces } from "@/lib/travels/types";
 import { SEASON_EMOJI, SEASON_MONTHS, SEASON_ORDER, seasonBadge } from "@/lib/season";
 import type { Region } from "@/lib/ai/schemas";
 
 export function RegionStep() {
   const { destination, regions, region, chooseRegion, setCategories, back, next } = useTrip();
+  const { entries } = useTravels();
   const [loadingId, setLoadingId] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
 
@@ -58,6 +61,8 @@ export function RegionStep() {
         {regions.map((r) => {
           const max = Math.max(...SEASON_ORDER.map((s) => r.seasonality[s] ?? 0));
           const selected = region?.id === r.id;
+          const visited = visitedInRegion(entries, destination, r.name);
+          const remaining = remainingSamplePlaces(r, destination, entries);
           return (
             <Card
               key={r.id}
@@ -74,6 +79,25 @@ export function RegionStep() {
                 <p className="text-sm text-muted-foreground">{r.blurb}</p>
               </CardHeader>
               <CardContent className="flex flex-1 flex-col gap-4">
+                {/* Already-visited awareness from the bucket list */}
+                {visited.length > 0 && (
+                  <div className="rounded-lg border border-emerald-600/30 bg-emerald-50 p-3 text-sm">
+                    <p className="flex items-center gap-1.5 font-medium text-emerald-700">
+                      <BadgeCheck className="size-4" />
+                      You&apos;ve visited {visited.length} place
+                      {visited.length > 1 ? "s" : ""} here
+                    </p>
+                    <p className="mt-0.5 text-xs text-emerald-700/80">
+                      {visited.map((v) => v.name).join(", ")}
+                    </p>
+                    {remaining.length > 0 && (
+                      <p className="mt-1.5 text-xs text-muted-foreground">
+                        Still to explore: {remaining.join(", ")}
+                      </p>
+                    )}
+                  </div>
+                )}
+
                 {/* Seasonality index */}
                 <div>
                   <p className="mb-1.5 text-xs font-medium uppercase tracking-wide text-muted-foreground">

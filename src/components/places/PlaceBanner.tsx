@@ -1,6 +1,6 @@
 "use client";
 
-import { Check, Plus, Star, Youtube, Globe, MessageSquare } from "lucide-react";
+import { Check, Plus, Star, Youtube, Globe, MessageSquare, BadgeCheck } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
@@ -21,12 +21,16 @@ export function PlaceBanner({
   days,
   onToggle,
   onDays,
+  visited = false,
+  onToggleVisited,
 }: {
   place: RankedPlace & { imageUrl?: string };
   selected: boolean;
   days: number;
   onToggle: () => void;
   onDays: (days: number) => void;
+  visited?: boolean;
+  onToggleVisited?: () => void;
 }) {
   return (
     <div
@@ -40,14 +44,23 @@ export function PlaceBanner({
         <img
           src={place.imageUrl ?? `https://picsum.photos/seed/${place.id}/800/450`}
           alt={place.name}
-          className="h-full w-full object-cover transition-transform duration-500 group-hover:scale-105"
+          className={cn(
+            "h-full w-full object-cover transition-transform duration-500 group-hover:scale-105",
+            visited && "saturate-50",
+          )}
         />
         <Badge className="absolute left-3 top-3 bg-black/65 text-white backdrop-blur">
           #{place.rank} ranked
         </Badge>
-        <Badge variant="secondary" className="absolute right-3 top-3">
-          {seasonBadge(place.bestSeason)}
-        </Badge>
+        {visited ? (
+          <Badge className="absolute right-3 top-3 bg-emerald-600 text-white">
+            <BadgeCheck className="mr-1 size-3.5" /> Visited
+          </Badge>
+        ) : (
+          <Badge variant="secondary" className="absolute right-3 top-3">
+            {seasonBadge(place.bestSeason)}
+          </Badge>
+        )}
       </div>
 
       <div className="flex flex-1 flex-col p-4">
@@ -118,6 +131,21 @@ export function PlaceBanner({
             </div>
           )}
         </div>
+
+        {onToggleVisited && (
+          <button
+            onClick={onToggleVisited}
+            className={cn(
+              "mt-2 inline-flex items-center gap-1 self-start text-xs font-medium transition-colors",
+              visited
+                ? "text-emerald-600 hover:text-emerald-700"
+                : "text-muted-foreground hover:text-foreground",
+            )}
+          >
+            <BadgeCheck className="size-3.5" />
+            {visited ? "Visited — remove from log" : "I've already visited this"}
+          </button>
+        )}
       </div>
     </div>
   );

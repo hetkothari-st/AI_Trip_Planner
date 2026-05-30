@@ -5,9 +5,12 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { PlaceBanner } from "@/components/places/PlaceBanner";
 import { useTrip } from "@/lib/store/trip";
+import { useTravels } from "@/lib/store/travels";
+import { isPlaceVisited, namesMatch, normalizeName } from "@/lib/travels/types";
 
 export function PlacesStep() {
   const {
+    destination,
     region,
     categories,
     places,
@@ -17,6 +20,25 @@ export function PlacesStep() {
     back,
     next,
   } = useTrip();
+  const { entries, addVisited, removeVisited } = useTravels();
+
+  // Toggle a place in/out of the user's travel log (the "I've already been here" tick).
+  const toggleVisited = (p: (typeof places)[number]) => {
+    const dest = normalizeName(destination);
+    const match = entries.find(
+      (e) => namesMatch(e.name, p.name) && normalizeName(e.destination) === dest,
+    );
+    if (match) removeVisited(match.id);
+    else
+      addVisited({
+        name: p.name,
+        destination,
+        regionName: region?.name,
+        lat: p.lat,
+        lng: p.lng,
+        activities: [],
+      });
+  };
 
   const labelFor = (id: string) =>
     categories.find((c) => c.id === id)?.label ?? id.replace(/-/g, " ");
@@ -62,6 +84,8 @@ export function PlacesStep() {
                   days={selected[p.id]?.days ?? 1}
                   onToggle={() => togglePlace(p)}
                   onDays={(d) => setDays(p.id, d)}
+                  visited={isPlaceVisited(p.name, destination, entries)}
+                  onToggleVisited={() => toggleVisited(p)}
                 />
               ))}
             </div>

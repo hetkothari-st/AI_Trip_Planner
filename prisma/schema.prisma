@@ -89,6 +89,28 @@ model CostItem {
   @@index([tripStopId])
 }
 
+// Bucket list / travel log — places the user has already visited. No auth yet, so rows
+// are scoped to a per-device clientId stored in the browser.
+model VisitedPlace {
+  id          String   @id
+  clientId    String
+  name        String
+  destination String
+  regionName  String?
+  lat         Float?
+  lng         Float?
+  startDate   String?
+  endDate     String?
+  budget      Float?
+  activities  String? // JSON array of activity tags
+  rating      Int?
+  notes       String?
+  companions  Int?
+  createdAt   DateTime @default(now())
+
+  @@index([clientId])
+}
+
 // Selected activities (Phase 10).
 model Activity {
   id          String   @id @default(cuid())

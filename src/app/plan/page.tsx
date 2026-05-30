@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { useEffect, useState } from "react";
-import { Compass, RotateCcw } from "lucide-react";
+import { Compass, RotateCcw, MapPin } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Stepper } from "@/components/wizard/Stepper";
@@ -44,15 +44,22 @@ export default function PlanPage() {
               <Stepper step={store.step} maxReached={maxReached} onJump={store.goTo} />
             </div>
           )}
-          <Button
-            variant="ghost"
-            size="sm"
-            onClick={() => {
-              store.reset();
-            }}
-          >
-            <RotateCcw className="size-4" /> Restart
-          </Button>
+          <div className="flex items-center gap-1">
+            <Button asChild variant="ghost" size="sm">
+              <Link href="/travels">
+                <MapPin className="size-4" /> My travels
+              </Link>
+            </Button>
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={() => {
+                store.reset();
+              }}
+            >
+              <RotateCcw className="size-4" /> Restart
+            </Button>
+          </div>
         </div>
       </header>
 

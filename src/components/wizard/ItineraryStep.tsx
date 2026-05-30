@@ -1,5 +1,7 @@
 "use client";
 
+import { useState } from "react";
+import { useRouter } from "next/navigation";
 import {
   ArrowLeft,
   FileDown,
@@ -10,11 +12,13 @@ import {
   Mountain,
   Utensils,
   CalendarDays,
+  BadgeCheck,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { MapPanel } from "@/components/map/MapPanel";
 import { useTrip, selectedList } from "@/lib/store/trip";
+import { useTravels } from "@/lib/store/travels";
 import { computeCost, formatINR } from "@/lib/cost";
 import { downloadExcel, downloadPdf, type Sheet } from "@/lib/export";
 import { formatDuration } from "@/lib/utils";
@@ -42,6 +46,32 @@ export function ItineraryStep() {
     activities,
     route,
   });
+
+  const router = useRouter();
+  const { addManyVisited } = useTravels();
+  const [logged, setLogged] = useState(false);
+
+  // Convert the whole planned trip into bucket-list entries, one per city, then jump to
+  // the travel log. Per-place budget reuses the cost model (hotel + activities + food).
+  function markVisited() {
+    addManyVisited(
+      places.map((p) => ({
+        name: p.name,
+        destination,
+        regionName: region?.name,
+        lat: p.lat,
+        lng: p.lng,
+        budget: Math.round(
+          computeCost({ places: [{ id: p.id, name: p.name, days: p.days }], hotels, activities, route: null })
+            .total,
+        ),
+        activities: (activities[p.id] ?? []).map((a) => a.name),
+        companions: 2,
+      })),
+    );
+    setLogged(true);
+    setTimeout(() => router.push("/travels"), 600);
+  }
 
   function exportExcel() {
     const itinRows: (string | number)[][] = [];
@@ -92,7 +122,10 @@ export function ItineraryStep() {
         <Button variant="ghost" onClick={back}>
           <ArrowLeft className="size-4" /> Back
         </Button>
-        <div className="flex gap-2">
+        <div className="flex flex-wrap gap-2">
+          <Button variant="outline" onClick={markVisited} disabled={logged}>
+            <BadgeCheck className="size-4" /> {logged ? "Added to travels ✓" : "Mark trip as visited"}
+          </Button>
           <Button variant="outline" onClick={exportExcel}>
             <FileSpreadsheet className="size-4" /> Export Excel
           </Button>
