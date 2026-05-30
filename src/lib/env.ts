@@ -11,6 +11,9 @@ export const env = {
   redditId: process.env.REDDIT_CLIENT_ID ?? "",
   redditSecret: process.env.REDDIT_CLIENT_SECRET ?? "",
   unsplashKey: process.env.UNSPLASH_ACCESS_KEY ?? "",
+  authSecret: process.env.AUTH_SECRET ?? "",
+  googleId: process.env.GOOGLE_CLIENT_ID ?? "",
+  googleSecret: process.env.GOOGLE_CLIENT_SECRET ?? "",
 };
 
 export const hasAnthropic = () => env.anthropicKey.length > 0;
@@ -18,5 +21,6 @@ export const hasWebSearch = () => env.tavilyKey.length > 0 || env.braveKey.lengt
 export const hasYouTube = () => env.youtubeKey.length > 0;
 export const hasReddit = () => env.redditId.length > 0 && env.redditSecret.length > 0;
 export const hasUnsplash = () => env.unsplashKey.length > 0;
+export const hasGoogle = () => env.googleId.length > 0 && env.googleSecret.length > 0;
 
 // Map tiles (OpenFreeMap) and routing (OSRM) are key-less — no token needed.

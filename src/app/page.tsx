@@ -10,6 +10,7 @@ import {
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
+import { AuthButton } from "@/components/auth/AuthButton";
 
 const features = [
   { icon: Compass, title: "Region discovery", body: "Tell us a destination — we surface its belts and regions with a seasonality index and what travellers love about each." },
@@ -33,6 +34,7 @@ export default function Home() {
           <Button asChild variant="ghost">
             <Link href="/travels">My travels</Link>
           </Button>
+          <AuthButton />
           <Button asChild variant="ghost">
             <Link href="/plan">Open planner</Link>
           </Button>

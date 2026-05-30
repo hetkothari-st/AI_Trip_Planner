@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { useEffect, useMemo, useState } from "react";
+import { useSession } from "next-auth/react";
 import {
   Compass,
   Plus,
@@ -19,13 +20,16 @@ import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
 import { VisitedForm } from "@/components/travels/VisitedForm";
 import { MapPanel } from "@/components/map/MapPanel";
+import { AuthButton } from "@/components/auth/AuthButton";
 import { useTravels } from "@/lib/store/travels";
 import { formatINR } from "@/lib/cost";
 import { tripDays, travelStats, type VisitedPlace } from "@/lib/travels/types";
 
 export default function TravelsPage() {
   const [mounted, setMounted] = useState(false);
-  const { entries, addVisited, updateVisited, removeVisited, hydrateFromServer } = useTravels();
+  const { entries, clientId, addVisited, updateVisited, removeVisited, hydrateFromServer } =
+    useTravels();
+  const { status } = useSession();
   const [adding, setAdding] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
 
@@ -33,6 +37,18 @@ export default function TravelsPage() {
     setMounted(true);
     hydrateFromServer();
   }, [hydrateFromServer]);
+
+  // On sign-in, merge this device's anonymous entries into the account, then re-pull.
+  useEffect(() => {
+    if (status !== "authenticated") return;
+    fetch("/api/travels/claim", {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({ clientId }),
+    })
+      .catch(() => {})
+      .finally(() => hydrateFromServer());
+  }, [status, clientId, hydrateFromServer]);
 
   const stats = useMemo(() => travelStats(entries), [entries]);
   const mapped = useMemo(
@@ -62,11 +78,14 @@ export default function TravelsPage() {
             <Compass className="size-5 text-primary" />
             <span className="font-serif text-lg font-semibold">Voyager</span>
           </Link>
-          <Button asChild variant="ghost" size="sm">
-            <Link href="/plan">
-              <MapIcon className="size-4" /> Plan a trip
-            </Link>
-          </Button>
+          <div className="flex items-center gap-1">
+            <AuthButton />
+            <Button asChild variant="ghost" size="sm">
+              <Link href="/plan">
+                <MapIcon className="size-4" /> Plan a trip
+              </Link>
+            </Button>
+          </div>
         </div>
       </header>
 

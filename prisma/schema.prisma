@@ -89,11 +89,61 @@ model CostItem {
   @@index([tripStopId])
 }
 
-// Bucket list / travel log — places the user has already visited. No auth yet, so rows
-// are scoped to a per-device clientId stored in the browser.
+// ── Auth.js (NextAuth) models ────────────────────────────────────────────────
+model User {
+  id            String    @id @default(cuid())
+  name          String?
+  email         String?   @unique
+  emailVerified DateTime?
+  image         String?
+  password      String? // bcrypt hash for the credentials provider
+  createdAt     DateTime  @default(now())
+
+  accounts Account[]
+  sessions Session[]
+}
+
+model Account {
+  id                String  @id @default(cuid())
+  userId            String
+  type              String
+  provider          String
+  providerAccountId String
+  refresh_token     String?
+  access_token      String?
+  expires_at        Int?
+  token_type        String?
+  scope             String?
+  id_token          String?
+  session_state     String?
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([provider, providerAccountId])
+}
+
+model Session {
+  id           String   @id @default(cuid())
+  sessionToken String   @unique
+  userId       String
+  expires      DateTime
+  user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+model VerificationToken {
+  identifier String
+  token      String   @unique
+  expires    DateTime
+
+  @@unique([identifier, token])
+}
+
+// Bucket list / travel log — places the user has already visited. Scoped to a per-device
+// clientId when anonymous; linked to a userId once the user signs in (optional auth).
 model VisitedPlace {
   id          String   @id
   clientId    String
+  userId      String?
   name        String
   destination String
   regionName  String?
@@ -110,6 +160,7 @@ model VisitedPlace {
   createdAt   DateTime @default(now())
 
   @@index([clientId])
+  @@index([userId])
 }
 
 // Selected activities (Phase 10).

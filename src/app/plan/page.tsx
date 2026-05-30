@@ -6,6 +6,7 @@ import { Compass, RotateCcw, MapPin } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Stepper } from "@/components/wizard/Stepper";
+import { AuthButton } from "@/components/auth/AuthButton";
 import { DestinationStep } from "@/components/wizard/DestinationStep";
 import { RegionStep } from "@/components/wizard/RegionStep";
 import { CategoryStep } from "@/components/wizard/CategoryStep";
@@ -45,6 +46,7 @@ export default function PlanPage() {
             </div>
           )}
           <div className="flex items-center gap-1">
+            <AuthButton />
             <Button asChild variant="ghost" size="sm">
               <Link href="/travels">
                 <MapPin className="size-4" /> My travels

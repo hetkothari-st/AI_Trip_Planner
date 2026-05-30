@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { z } from "zod";
 import { prisma } from "@/lib/db";
+import { auth } from "@/auth";
 import { VisitedPlaceUpsertSchema, type VisitedPlace } from "@/lib/travels/types";
 
 export const runtime = "nodejs";
@@ -44,12 +45,18 @@ function rowToVisited(r: Row): VisitedPlace {
   };
 }
 
-/** GET /api/travels?clientId=... — all visited places for a device. */
+/**
+ * GET /api/travels?clientId=... — visited places for the signed-in user, or for the device
+ * (clientId) when anonymous. A logged-in session always takes precedence over clientId.
+ */
 export async function GET(req: Request) {
+  const session = await auth();
+  const userId = session?.user?.id;
   const clientId = new URL(req.url).searchParams.get("clientId");
-  if (!clientId) return NextResponse.json({ error: "clientId required" }, { status: 400 });
+  const where = userId ? { userId } : clientId ? { clientId } : null;
+  if (!where) return NextResponse.json({ error: "clientId required" }, { status: 400 });
   const rows = (await prisma.visitedPlace.findMany({
-    where: { clientId },
+    where,
     orderBy: { createdAt: "desc" },
   })) as Row[];
   return NextResponse.json({ entries: rows.map(rowToVisited) });
@@ -61,9 +68,12 @@ export async function POST(req: Request) {
   if (!parsed.success) {
     return NextResponse.json({ error: "Invalid visited place" }, { status: 400 });
   }
+  const session = await auth();
+  const userId = session?.user?.id ?? null;
   const { clientId, activities, createdAt, ...rest } = parsed.data;
   // Shared columns. createdAt is set only on create so editing keeps the original timestamp.
-  const common = { ...rest, clientId, activities: JSON.stringify(activities ?? []) };
+  // A signed-in write also links/claims the row to the user.
+  const common = { ...rest, clientId, userId, activities: JSON.stringify(activities ?? []) };
   await prisma.visitedPlace.upsert({
     where: { id: rest.id },
     create: { ...common, createdAt: new Date(createdAt) },
@@ -72,8 +82,10 @@ export async function POST(req: Request) {
   return NextResponse.json({ ok: true });
 }
 
-/** DELETE /api/travels?clientId=...&id=... — remove one entry (scoped to the device). */
+/** DELETE /api/travels?clientId=...&id=... — remove one entry (scoped to user or device). */
 export async function DELETE(req: Request) {
+  const session = await auth();
+  const userId = session?.user?.id;
   const params = new URL(req.url).searchParams;
   const clientId = params.get("clientId");
   const id = params.get("id");
@@ -82,6 +94,10 @@ export async function DELETE(req: Request) {
     id,
   });
   if (!check.success) return NextResponse.json({ error: "id + clientId required" }, { status: 400 });
-  await prisma.visitedPlace.deleteMany({ where: { id: check.data.id, clientId: check.data.clientId } });
+  await prisma.visitedPlace.deleteMany({
+    where: userId
+      ? { id: check.data.id, userId }
+      : { id: check.data.id, clientId: check.data.clientId },
+  });
   return NextResponse.json({ ok: true });
 }
