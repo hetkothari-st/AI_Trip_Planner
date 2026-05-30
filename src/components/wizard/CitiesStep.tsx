@@ -14,6 +14,7 @@ import {
   Landmark,
   Flame,
   BedDouble,
+  Check,
   Map as MapTab,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -22,7 +23,7 @@ import { HotelPanel } from "@/components/hotels/HotelPanel";
 import { ActivitiesPanel } from "@/components/activities/ActivitiesPanel";
 import { CostSummary } from "@/components/cost/CostSummary";
 import { cn } from "@/lib/utils";
-import { useTrip, selectedList } from "@/lib/store/trip";
+import { useTrip, selectedList, suggestedDays } from "@/lib/store/trip";
 import { formatINR } from "@/lib/cost";
 import type { CitySpot } from "@/lib/ai/schemas";
 
@@ -45,7 +46,8 @@ function fmtMin(min: number): string {
 
 export function CitiesStep() {
   const store = useTrip();
-  const { destination, cityPlans, setCityPlan, hotels, activities, setDays, back, next } = store;
+  const { destination, cityPlans, setCityPlan, selectedSpots, toggleSpot, hotels, activities, setDays, back, next } =
+    store;
   const places = selectedList(store);
   const [loading, setLoading] = useState<Record<string, boolean>>({});
   const [tabs, setTabs] = useState<Record<string, Tab>>({});
@@ -96,7 +98,8 @@ export function CitiesStep() {
           {places.map((p) => {
             const plan = cityPlans[p.id];
             const isLoading = loading[p.id];
-            const spotsPerDay = plan ? Math.ceil(plan.spots.length / p.days) : 0;
+            const keptNames = plan ? selectedSpots[p.id] ?? plan.spots.map((s) => s.name) : [];
+            const sugg = suggestedDays(keptNames.length);
             const tab = tabOf(p.id);
             const hotel = hotels[p.id];
             const acts = activities[p.id] ?? [];
@@ -166,46 +169,61 @@ export function CitiesStep() {
                       )}
                       {plan && (
                         <div className="grid gap-6 lg:grid-cols-[1fr_280px]">
-                          <div className="space-y-5">
-                            {Array.from({ length: p.days }).map((_, dayIdx) => {
-                              const daySpots = plan.spots.slice(dayIdx * spotsPerDay, (dayIdx + 1) * spotsPerDay);
-                              if (daySpots.length === 0) return null;
-                              const dayMin = daySpots.reduce((n, s) => n + s.durationMin, 0);
-                              return (
-                                <div key={dayIdx}>
-                                  <div className="mb-2 flex items-center gap-2">
-                                    <span className="flex size-6 items-center justify-center rounded-full bg-primary text-xs font-bold text-primary-foreground">
-                                      {dayIdx + 1}
-                                    </span>
-                                    <h3 className="font-semibold">Day {dayIdx + 1}</h3>
-                                    <span className="text-xs text-muted-foreground">· ~{fmtMin(dayMin)} of activities</span>
-                                  </div>
-                                  <ol className="ml-3 space-y-2 border-l pl-4">
-                                    {daySpots.map((s, i) => {
-                                      const Icon = SPOT_ICON[s.category];
-                                      return (
-                                        <li key={i} className="relative">
-                                          <span className="absolute -left-[22px] top-1 flex size-3.5 items-center justify-center rounded-full bg-background ring-2 ring-primary/40" />
-                                          <div className="flex items-start justify-between gap-3">
-                                            <div>
-                                              <p className="flex items-center gap-1.5 font-medium">
-                                                <Icon className="size-3.5 text-primary" />
-                                                {s.name}
-                                              </p>
-                                              <p className="text-sm text-muted-foreground">{s.description}</p>
-                                            </div>
-                                            <Badge variant="muted" className="shrink-0">
-                                              <Clock className="mr-1 size-3" />
-                                              {fmtMin(s.durationMin)}
-                                            </Badge>
-                                          </div>
-                                        </li>
-                                      );
-                                    })}
-                                  </ol>
-                                </div>
-                              );
-                            })}
+                          <div className="space-y-3">
+                            <div className="flex flex-wrap items-center justify-between gap-2">
+                              <p className="text-sm text-muted-foreground">
+                                <span className="font-medium text-foreground">{keptNames.length}</span> of{" "}
+                                {plan.spots.length} spots · AI suggests{" "}
+                                <span className="font-medium text-foreground">{sugg}d</span>
+                              </p>
+                              {p.days !== sugg && (
+                                <Button variant="outline" size="sm" onClick={() => setDays(p.id, sugg)}>
+                                  Use {sugg} {sugg === 1 ? "day" : "days"}
+                                </Button>
+                              )}
+                            </div>
+                            <ul className="space-y-2">
+                              {plan.spots.map((s, i) => {
+                                const Icon = SPOT_ICON[s.category];
+                                const on = keptNames.includes(s.name);
+                                return (
+                                  <li key={i}>
+                                    <button
+                                      type="button"
+                                      onClick={() => toggleSpot(p.id, s.name)}
+                                      className={cn(
+                                        "flex w-full items-start gap-3 rounded-lg border p-3 text-left transition-colors",
+                                        on
+                                          ? "border-primary bg-primary/5"
+                                          : "border-border opacity-60 hover:opacity-100",
+                                      )}
+                                    >
+                                      <span
+                                        className={cn(
+                                          "mt-0.5 flex size-5 shrink-0 items-center justify-center rounded-full border-2",
+                                          on
+                                            ? "border-primary bg-primary text-primary-foreground"
+                                            : "border-muted-foreground/40",
+                                        )}
+                                      >
+                                        {on && <Check className="size-3" />}
+                                      </span>
+                                      <div className="flex-1">
+                                        <p className="flex items-center gap-1.5 font-medium">
+                                          <Icon className="size-3.5 text-primary" />
+                                          {s.name}
+                                        </p>
+                                        <p className="text-sm text-muted-foreground">{s.description}</p>
+                                      </div>
+                                      <Badge variant="muted" className="shrink-0">
+                                        <Clock className="mr-1 size-3" />
+                                        {fmtMin(s.durationMin)}
+                                      </Badge>
+                                    </button>
+                                  </li>
+                                );
+                              })}
+                            </ul>
                           </div>
 
                           <aside className="space-y-4">

@@ -282,8 +282,10 @@ const cityPlanJsonSchema = {
           description: { type: "string" },
           durationMin: { type: "number" },
           category: { type: "string", enum: ["sightseeing", "nature", "activity", "food", "spiritual"] },
+          lat: { type: "number" },
+          lng: { type: "number" },
         },
-        required: ["name", "description", "durationMin", "category"],
+        required: ["name", "description", "durationMin", "category", "lat", "lng"],
       },
     },
     foodPlaces: {
@@ -314,7 +316,7 @@ export async function generateCityPlan(
 named attractions of this specific place — actual temples, ghats, viewpoints, lakes, treks,
 museums and markets that appear in official tourism itineraries and travel guides. NEVER use
 generic placeholders like "Main Viewpoint" or "Old Market". For each spot give a realistic
-visit duration (minutes) and a category. Also list the city's real signature local dishes,
+visit duration (minutes), a category, and the spot's REAL coordinates (lat/lng). Also list the city's real signature local dishes,
 3 actual recommended eateries (real names where known), what it is famous for, and a
 recommended number of days. Order spots into a sensible daily routine (~3 per day).${researchBlock}`,
     schema: CityPlanSchema,

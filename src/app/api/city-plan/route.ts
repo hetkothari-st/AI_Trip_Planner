@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { z } from "zod";
 import { generateCityPlan } from "@/lib/ai";
 import { aggregate } from "@/lib/research";
+import { geocode } from "@/lib/geocode";
 
 export const runtime = "nodejs";
 
@@ -19,5 +20,19 @@ export async function POST(req: Request) {
   const { destination, city, days } = parsed.data;
   const research = await aggregate(`best things to do, spots and local food in ${city}, ${destination}`);
   const plan = await generateCityPlan(destination, city, days, research);
+
+  // Ensure every spot has coordinates (for intra-city routing): geocode the ones the AI
+  // left blank, by spot name within the city.
+  await Promise.all(
+    plan.spots.map(async (s) => {
+      if (s.lat != null && s.lng != null) return;
+      const point = await geocode(`${s.name}, ${city}, ${destination}`);
+      if (point) {
+        s.lat = point.lat;
+        s.lng = point.lng;
+      }
+    }),
+  );
+
   return NextResponse.json({ plan });
 }

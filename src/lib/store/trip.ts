@@ -2,7 +2,7 @@
 
 import { create } from "zustand";
 import { persist } from "zustand/middleware";
-import type { Activity, Category, CityPlan, RankedPlace, Region } from "@/lib/ai/schemas";
+import type { Activity, Category, CityPlan, CitySpot, RankedPlace, Region } from "@/lib/ai/schemas";
 import type { Hotel } from "@/lib/hotels/types";
 import type { RouteResult } from "@/lib/maps";
 
@@ -27,6 +27,7 @@ export interface TripSnapshot {
   selected: Record<string, SelectedPlace>;
   order: string[];
   cityPlans: Record<string, CityPlan>;
+  selectedSpots: Record<string, string[]>; // spot names the user kept, per city id
   hotels: Record<string, Hotel>;
   activities: Record<string, Activity[]>;
   startId: string | null;
@@ -51,6 +52,8 @@ interface TripState extends TripSnapshot {
   togglePlace: (p: RankedPlace) => void;
   setDays: (id: string, days: number) => void;
   setCityPlan: (id: string, plan: CityPlan) => void;
+  toggleSpot: (cityId: string, spotName: string) => void;
+  setCitySpots: (cityId: string, spotNames: string[]) => void;
   setHotel: (id: string, hotel: Hotel | null) => void;
   toggleActivity: (id: string, activity: Activity) => void;
   setOrder: (ids: string[]) => void;
@@ -78,6 +81,7 @@ const initial = {
   selected: {} as Record<string, SelectedPlace>,
   order: [] as string[],
   cityPlans: {} as Record<string, CityPlan>,
+  selectedSpots: {} as Record<string, string[]>,
   hotels: {} as Record<string, Hotel>,
   activities: {} as Record<string, Activity[]>,
   startId: null,
@@ -124,15 +128,18 @@ export const useTrip = create<TripState>()(
             delete selected[p.id];
             order = order.filter((id) => id !== p.id);
             const cityPlans = { ...s.cityPlans };
+            const selectedSpots = { ...s.selectedSpots };
             const hotels = { ...s.hotels };
             const activities = { ...s.activities };
             delete cityPlans[p.id];
+            delete selectedSpots[p.id];
             delete hotels[p.id];
             delete activities[p.id];
             return {
               selected,
               order,
               cityPlans,
+              selectedSpots,
               hotels,
               activities,
               startId: s.startId === p.id ? null : s.startId,
@@ -149,7 +156,25 @@ export const useTrip = create<TripState>()(
           if (!sel) return {};
           return { selected: { ...s.selected, [id]: { ...sel, days: Math.max(1, days) } } };
         }),
-      setCityPlan: (id, plan) => set((s) => ({ cityPlans: { ...s.cityPlans, [id]: plan } })),
+      setCityPlan: (id, plan) =>
+        set((s) => ({
+          cityPlans: { ...s.cityPlans, [id]: plan },
+          // Default every spot to selected the first time a city is planned; the user
+          // then deselects the ones they don't want.
+          selectedSpots: s.selectedSpots[id]
+            ? s.selectedSpots
+            : { ...s.selectedSpots, [id]: plan.spots.map((sp) => sp.name) },
+        })),
+      toggleSpot: (cityId, spotName) =>
+        set((s) => {
+          const cur = s.selectedSpots[cityId] ?? [];
+          const next = cur.includes(spotName)
+            ? cur.filter((n) => n !== spotName)
+            : [...cur, spotName];
+          return { selectedSpots: { ...s.selectedSpots, [cityId]: next } };
+        }),
+      setCitySpots: (cityId, spotNames) =>
+        set((s) => ({ selectedSpots: { ...s.selectedSpots, [cityId]: spotNames } })),
       setHotel: (id, hotel) =>
         set((s) => {
           const hotels = { ...s.hotels };
@@ -178,6 +203,7 @@ export const useTrip = create<TripState>()(
           selected: {},
           order: [],
           cityPlans: {},
+          selectedSpots: {},
           hotels: {},
           activities: {},
           startId: null,
@@ -201,6 +227,23 @@ export function selectedRegions(state: TripState): Region[] {
   return state.regions.filter((r) => state.selectedRegionIds.includes(r.id));
 }
 
+/** The spots a user kept for a city, in plan order. Falls back to all when unset. */
+export function selectedSpotsOf(
+  state: TripState,
+  cityId: string,
+  plan: CityPlan,
+): CitySpot[] {
+  const names = state.selectedSpots[cityId];
+  if (!names) return plan.spots;
+  const keep = new Set(names);
+  return plan.spots.filter((sp) => keep.has(sp.name));
+}
+
+/** Suggested days for a city from its kept-spot count (~3 spots a day, min 1). */
+export function suggestedDays(spotCount: number): number {
+  return Math.max(1, Math.ceil(spotCount / 3));
+}
+
 /** Extract just the serializable trip data from the live store (drops the action fns). */
 export function snapshotOf(state: TripState): TripSnapshot {
   return {
@@ -216,6 +259,7 @@ export function snapshotOf(state: TripState): TripSnapshot {
     selected: state.selected,
     order: state.order,
     cityPlans: state.cityPlans,
+    selectedSpots: state.selectedSpots,
     hotels: state.hotels,
     activities: state.activities,
     startId: state.startId,

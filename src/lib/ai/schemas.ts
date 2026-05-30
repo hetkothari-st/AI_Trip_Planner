@@ -86,6 +86,9 @@ export const CitySpotSchema = z.object({
   description: z.string(),
   durationMin: z.number().int().min(15),
   category: z.enum(["sightseeing", "nature", "activity", "food", "spiritual"]),
+  // Real coordinates of the spot, for intra-city routing (filled by AI + geocode fallback).
+  lat: z.number().optional(),
+  lng: z.number().optional(),
 });
 export type CitySpot = z.infer<typeof CitySpotSchema>;
 

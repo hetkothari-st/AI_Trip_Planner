@@ -19,7 +19,7 @@ import {
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { MapPanel } from "@/components/map/MapPanel";
-import { useTrip, selectedList } from "@/lib/store/trip";
+import { useTrip, selectedList, selectedSpotsOf } from "@/lib/store/trip";
 import { saveActiveTrip } from "@/lib/store/tripManager";
 import { useTravels } from "@/lib/store/travels";
 import { computeCost, formatINR } from "@/lib/cost";
@@ -89,8 +89,9 @@ export function ItineraryStep() {
     places.forEach((p, idx) => {
       const plan = cityPlans[p.id];
       if (!plan) return;
-      const perDay = Math.ceil(plan.spots.length / p.days);
-      plan.spots.forEach((s, i) => {
+      const spots = selectedSpotsOf(store, p.id, plan);
+      const perDay = Math.max(1, Math.ceil(spots.length / p.days));
+      spots.forEach((s, i) => {
         const day = startDays[idx] + Math.floor(i / perDay) + 1;
         itinRows.push([p.name, day, s.name, fmtMin(s.durationMin), s.category]);
       });
@@ -191,7 +192,8 @@ export function ItineraryStep() {
           const plan = cityPlans[p.id];
           const hotel = hotels[p.id];
           const acts = activities[p.id] ?? [];
-          const perDay = plan ? Math.ceil(plan.spots.length / p.days) : 0;
+          const spots = plan ? selectedSpotsOf(store, p.id, plan) : [];
+          const perDay = plan ? Math.max(1, Math.ceil(spots.length / p.days)) : 0;
           const startDay = startDays[idx];
           const leg = idx > 0 ? route?.legs[idx - 1] : null;
           const dayRange =
@@ -221,7 +223,7 @@ export function ItineraryStep() {
                 <div className="mt-4 grid gap-6 md:grid-cols-[1fr_260px]">
                   <div className="space-y-4">
                     {Array.from({ length: p.days }).map((_, dayIdx) => {
-                      const daySpots = plan.spots.slice(dayIdx * perDay, (dayIdx + 1) * perDay);
+                      const daySpots = spots.slice(dayIdx * perDay, (dayIdx + 1) * perDay);
                       if (!daySpots.length) return null;
                       return (
                         <div key={dayIdx}>
