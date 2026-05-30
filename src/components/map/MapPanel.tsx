@@ -23,7 +23,15 @@ const routeLayer: LineLayerSpecification = {
   paint: { "line-color": "#0d6e7a", "line-width": 4, "line-opacity": 0.85 },
 };
 
-export function MapPanel({ stops, route }: { stops: MapStop[]; route: RouteResult | null }) {
+export function MapPanel({
+  stops,
+  route,
+  onStopClick,
+}: {
+  stops: MapStop[];
+  route: RouteResult | null;
+  onStopClick?: (id: string) => void;
+}) {
   const bounds = useMemo(() => computeBounds(stops), [stops]);
 
   const geojson = {
@@ -50,8 +58,16 @@ export function MapPanel({ stops, route }: { stops: MapStop[]; route: RouteResul
         </Source>
       )}
       {stops.map((s, i) => (
-        <Marker key={s.id} longitude={s.lng} latitude={s.lat} anchor="bottom">
-          <Pin index={i + 1} label={s.name} />
+        <Marker
+          key={s.id}
+          longitude={s.lng}
+          latitude={s.lat}
+          anchor="bottom"
+          onClick={onStopClick ? () => onStopClick(s.id) : undefined}
+        >
+          <div className={onStopClick ? "cursor-pointer" : undefined}>
+            <Pin index={i + 1} label={s.name} />
+          </div>
         </Marker>
       ))}
     </Map>

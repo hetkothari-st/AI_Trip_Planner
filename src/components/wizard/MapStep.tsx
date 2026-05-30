@@ -1,11 +1,12 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
-import { ArrowLeft, ArrowRight, Clock, Route as RouteIcon, Loader2, Wand2 } from "lucide-react";
+import { ArrowLeft, ArrowRight, Clock, Route as RouteIcon, Loader2, Wand2, Map as MapIcon, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { MapPanel } from "@/components/map/MapPanel";
-import { useTrip, selectedList } from "@/lib/store/trip";
+import { CityMiniMap } from "@/components/map/CityMiniMap";
+import { useTrip, selectedList, selectedSpotsOf } from "@/lib/store/trip";
 import { formatDuration } from "@/lib/utils";
 import { getRoute, optimizeRoute } from "@/lib/maps";
 
@@ -15,6 +16,10 @@ export function MapStep() {
   const places = selectedList(store);
   const [loading, setLoading] = useState(false);
   const [optimizing, setOptimizing] = useState(false);
+  const [openCityId, setOpenCityId] = useState<string | null>(null);
+
+  const openCity = openCityId ? store.selected[openCityId] : null;
+  const openPlan = openCityId ? store.cityPlans[openCityId] : undefined;
 
   // Recompute the route in real time whenever the ordered stops change.
   const key = places.map((p) => p.id).join("|");
@@ -98,7 +103,7 @@ export function MapStep() {
 
       <div className="grid gap-6 lg:grid-cols-[1fr_360px]">
         <div className="h-[560px] overflow-hidden rounded-xl border shadow-sm">
-          <MapPanel stops={mapStops} route={route} />
+          <MapPanel stops={mapStops} route={route} onStopClick={setOpenCityId} />
         </div>
 
         <aside className="flex flex-col gap-4">
@@ -164,9 +169,23 @@ export function MapStep() {
                     {i + 1}
                   </span>
                   <div className="flex-1">
-                    <div className="flex items-center justify-between">
-                      <span className="font-medium">{p.name}</span>
-                      <Badge variant="muted">{p.days}d</Badge>
+                    <div className="flex items-center justify-between gap-2">
+                      <button
+                        onClick={() => setOpenCityId(p.id)}
+                        className="truncate text-left font-medium hover:text-primary hover:underline"
+                      >
+                        {p.name}
+                      </button>
+                      <div className="flex shrink-0 items-center gap-1.5">
+                        <button
+                          onClick={() => setOpenCityId(p.id)}
+                          className="text-muted-foreground hover:text-primary"
+                          aria-label={`Open ${p.name} map`}
+                        >
+                          <MapIcon className="size-3.5" />
+                        </button>
+                        <Badge variant="muted">{p.days}d</Badge>
+                      </div>
                     </div>
                     {route?.legs[i] && (
                       <p className="mt-0.5 flex items-center gap-1 text-xs text-muted-foreground">
@@ -216,6 +235,50 @@ export function MapStep() {
           </Button>
         </aside>
       </div>
+
+      {/* nested city mini-map: click a city pin or name to drill in */}
+      {openCity && (
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4"
+          onClick={() => setOpenCityId(null)}
+        >
+          <div
+            className="max-h-[90vh] w-full max-w-2xl overflow-y-auto rounded-xl border bg-card p-5 shadow-xl"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="mb-4 flex items-center justify-between">
+              <div>
+                <h2 className="font-serif text-xl font-semibold">{openCity.name}</h2>
+                <p className="text-sm text-muted-foreground">Hotel, spots and activities routed</p>
+              </div>
+              <Button variant="ghost" size="icon" onClick={() => setOpenCityId(null)} aria-label="Close">
+                <X className="size-4" />
+              </Button>
+            </div>
+            <CityMiniMap
+              hotel={
+                openCityId && store.hotels[openCityId]
+                  ? {
+                      name: store.hotels[openCityId].name,
+                      lat: store.hotels[openCityId].lat,
+                      lng: store.hotels[openCityId].lng,
+                    }
+                  : undefined
+              }
+              spots={
+                openPlan
+                  ? selectedSpotsOf(store, openCityId!, openPlan)
+                      .filter((s) => s.lat != null && s.lng != null)
+                      .map((s) => ({ name: s.name, lat: s.lat!, lng: s.lng! }))
+                  : []
+              }
+              activities={(store.activities[openCityId!] ?? [])
+                .filter((a) => a.lat != null && a.lng != null)
+                .map((a) => ({ name: a.name, lat: a.lat!, lng: a.lng! }))}
+            />
+          </div>
+        </div>
+      )}
     </div>
   );
 }

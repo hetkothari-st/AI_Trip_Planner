@@ -19,6 +19,7 @@ import {
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { MapPanel } from "@/components/map/MapPanel";
+import { CityMiniMap } from "@/components/map/CityMiniMap";
 import { useTrip, selectedList, selectedSpotsOf } from "@/lib/store/trip";
 import { saveActiveTrip } from "@/lib/store/tripManager";
 import { useTravels } from "@/lib/store/travels";
@@ -276,6 +277,20 @@ export function ItineraryStep() {
                       <p className="mt-1 text-muted-foreground">{plan.localFood.join(", ")}</p>
                     </div>
                   </aside>
+                </div>
+              )}
+              {/* per-city map of hotel + spots + activities (screen only) */}
+              {plan && (spots.length > 0 || hotel) && (
+                <div className="no-print mt-4">
+                  <CityMiniMap
+                    hotel={hotel ? { name: hotel.name, lat: hotel.lat, lng: hotel.lng } : undefined}
+                    spots={spots
+                      .filter((s) => s.lat != null && s.lng != null)
+                      .map((s) => ({ name: s.name, lat: s.lat!, lng: s.lng! }))}
+                    activities={acts
+                      .filter((a) => a.lat != null && a.lng != null)
+                      .map((a) => ({ name: a.name, lat: a.lat!, lng: a.lng! }))}
+                  />
                 </div>
               )}
               </div>
