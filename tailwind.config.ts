@@ -12,9 +12,13 @@ const config: Config = {
     extend: {
       fontFamily: {
         sans: ["var(--font-sans)", "system-ui", "sans-serif"],
-        serif: ["var(--font-serif)", "Georgia", "serif"],
+        // Bauhaus / Neo-Brutalist headlines — Space Grotesk
+        serif: ["var(--font-display)", "Space Grotesk", "sans-serif"],
+        display: ["var(--font-display)", "Space Grotesk", "sans-serif"],
+        headline: ["var(--font-display)", "Space Grotesk", "sans-serif"],
       },
       colors: {
+        // shadcn semantic tokens (CSS-var driven; values set to the Bauhaus palette in globals.css)
         border: "hsl(var(--border))",
         input: "hsl(var(--input))",
         ring: "hsl(var(--ring))",
@@ -48,11 +52,43 @@ const config: Config = {
           DEFAULT: "hsl(var(--popover))",
           foreground: "hsl(var(--popover-foreground))",
         },
+
+        // ── Bauhaus / Neo-Brutalist literal tokens (match the reference design) ──
+        tertiary: "#0055ff",
+        "tertiary-container": "#d6e3ff",
+        "on-tertiary": "#ffffff",
+        "primary-container": "#ffcc00",
+        "on-primary-container": "#1a1a1a",
+        "on-primary": "#ffffff",
+        "primary-fixed": "#ffcc00",
+        "primary-fixed-dim": "#e6b800",
+        "on-secondary": "#ffffff",
+        surface: "#f5f0e8",
+        "surface-bright": "#faf7f2",
+        "surface-container-lowest": "#ffffff",
+        "surface-container-low": "#f2ede5",
+        "surface-container": "#eee9e0",
+        "surface-container-high": "#e8e3da",
+        "surface-container-highest": "#e2ddd4",
+        "surface-variant": "#e8e3da",
+        "surface-dim": "#d6d1c9",
+        "on-surface": "#1a1a1a",
+        "on-surface-variant": "#4a4a4a",
+        outline: "#1a1a1a",
+        "outline-variant": "#d0cbc3",
+        error: "#cc0000",
+        "error-container": "#ffdad6",
       },
       borderRadius: {
         lg: "var(--radius)",
         md: "calc(var(--radius) - 2px)",
         sm: "calc(var(--radius) - 4px)",
+      },
+      boxShadow: {
+        neo: "6px 6px 0px 0px #1a1a1a",
+        "neo-sm": "4px 4px 0px 0px #1a1a1a",
+        "neo-lg": "8px 8px 0px 0px #1a1a1a",
+        "neo-pressed": "2px 2px 0px 0px #1a1a1a",
       },
       keyframes: {
         "accordion-down": {

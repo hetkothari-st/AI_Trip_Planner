@@ -4,37 +4,39 @@
 
 @layer base {
   :root {
-    --background: 40 33% 98%;
-    --foreground: 200 25% 12%;
+    /* ── Bauhaus / Neo-Brutalist palette (driven into shadcn tokens) ── */
+    --background: 40 33% 94%; /* #f5f0e8 warm aged paper */
+    --foreground: 0 0% 10%; /* #1a1a1a near-black */
 
     --card: 0 0% 100%;
-    --card-foreground: 200 25% 12%;
+    --card-foreground: 0 0% 10%;
 
     --popover: 0 0% 100%;
-    --popover-foreground: 200 25% 12%;
+    --popover-foreground: 0 0% 10%;
 
-    /* deep teal — calm, premium travel feel */
-    --primary: 187 64% 26%;
-    --primary-foreground: 40 33% 98%;
+    /* primary = near-black ink */
+    --primary: 0 0% 10%;
+    --primary-foreground: 0 0% 100%;
 
-    --secondary: 35 30% 92%;
-    --secondary-foreground: 200 25% 16%;
+    /* secondary = high-energy brutalist red */
+    --secondary: 4 80% 54%; /* #e63b2e */
+    --secondary-foreground: 0 0% 100%;
 
-    --muted: 40 20% 94%;
-    --muted-foreground: 200 12% 42%;
+    --muted: 40 25% 91%; /* #eee9e0 */
+    --muted-foreground: 0 0% 29%; /* #4a4a4a */
 
-    /* warm amber accent */
-    --accent: 32 90% 52%;
-    --accent-foreground: 0 0% 100%;
+    /* accent = signal yellow */
+    --accent: 48 100% 50%; /* #ffcc00 */
+    --accent-foreground: 0 0% 10%;
 
-    --destructive: 0 72% 48%;
+    --destructive: 0 100% 40%; /* #cc0000 */
     --destructive-foreground: 0 0% 100%;
 
-    --border: 40 18% 88%;
-    --input: 40 18% 86%;
-    --ring: 187 64% 30%;
+    --border: 36 18% 79%; /* #d0cbc3 subtle; use border-primary for the brutalist black rule */
+    --input: 0 0% 10%;
+    --ring: 220 100% 50%; /* #0055ff electric blue focus */
 
-    --radius: 0.75rem;
+    --radius: 0.25rem;
   }
 }
 
@@ -46,17 +48,52 @@
     @apply bg-background text-foreground;
     font-feature-settings: "rlig" 1, "calt" 1;
   }
+  /* Headlines in the geometric display face */
+  h1,
+  h2,
+  h3 {
+    font-family: var(--font-display), "Space Grotesk", sans-serif;
+  }
+  ::selection {
+    background: #ffcc00;
+    color: #1a1a1a;
+  }
 }
 
-/* subtle hero gradient + glassy surfaces used across the wizard */
+/* ── Neo-Brutalist elevation: solid offset blocks instead of soft shadows ── */
+.neo-shadow {
+  box-shadow: 6px 6px 0px 0px #1a1a1a;
+}
+.neo-shadow-sm {
+  box-shadow: 4px 4px 0px 0px #1a1a1a;
+}
+.neo-shadow-hover {
+  transition:
+    box-shadow 0.15s ease,
+    transform 0.15s ease;
+}
+.neo-shadow-hover:hover {
+  box-shadow: 2px 2px 0px 0px #1a1a1a;
+  transform: translate(4px, 4px);
+}
+
+/* Bauhaus background motifs (decorative geometric blocks) */
+.bauhaus-grid {
+  background-image:
+    linear-gradient(to right, rgba(26, 26, 26, 0.04) 1px, transparent 1px),
+    linear-gradient(to bottom, rgba(26, 26, 26, 0.04) 1px, transparent 1px);
+  background-size: 48px 48px;
+}
+
+/* legacy helpers still used by some non-redesigned pages */
 .hero-gradient {
   background:
-    radial-gradient(1200px 600px at 70% -10%, hsl(187 64% 26% / 0.18), transparent 60%),
-    radial-gradient(900px 500px at 10% 10%, hsl(32 90% 52% / 0.12), transparent 55%);
+    radial-gradient(1200px 600px at 70% -10%, hsl(48 100% 50% / 0.14), transparent 60%),
+    radial-gradient(900px 500px at 10% 10%, hsl(4 80% 54% / 0.08), transparent 55%);
 }
 
 .glass {
-  background: hsl(0 0% 100% / 0.72);
+  background: hsl(245 240 232 / 0.72);
   backdrop-filter: blur(10px);
 }
 
