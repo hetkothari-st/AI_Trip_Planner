@@ -1,14 +1,14 @@
 "use client";
 
 import { useState } from "react";
-import { Loader2, Check, ArrowLeft, BadgeCheck } from "lucide-react";
+import { Loader2, Check, ArrowLeft, BadgeCheck, Sparkles } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { cn } from "@/lib/utils";
 import { useTrip } from "@/lib/store/trip";
 import { useTravels } from "@/lib/store/travels";
-import { visitedInRegion, remainingSamplePlaces } from "@/lib/travels/types";
+import { visitedInRegion, remainingSamplePlaces, isPlaceVisited } from "@/lib/travels/types";
 import { SEASON_EMOJI, SEASON_MONTHS, SEASON_ORDER, seasonBadge } from "@/lib/season";
 import type { Region } from "@/lib/ai/schemas";
 
@@ -17,6 +17,29 @@ export function RegionStep() {
   const { entries } = useTravels();
   const [loadingId, setLoadingId] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
+  // AI-discovered "what's left to explore", loaded on demand per region.
+  const [aiRemaining, setAiRemaining] = useState<Record<string, string[]>>({});
+  const [loadingMore, setLoadingMore] = useState<string | null>(null);
+
+  async function loadMore(r: Region) {
+    setLoadingMore(r.id);
+    try {
+      const res = await fetch("/api/region-places", {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({ destination, region: r }),
+      });
+      if (res.ok) {
+        const { places } = (await res.json()) as { places: string[] };
+        setAiRemaining((s) => ({
+          ...s,
+          [r.id]: places.filter((p) => !isPlaceVisited(p, destination, entries)),
+        }));
+      }
+    } finally {
+      setLoadingMore(null);
+    }
+  }
 
   async function pick(r: Region) {
     chooseRegion(r);
@@ -90,10 +113,25 @@ export function RegionStep() {
                     <p className="mt-0.5 text-xs text-emerald-700/80">
                       {visited.map((v) => v.name).join(", ")}
                     </p>
-                    {remaining.length > 0 && (
+                    {(aiRemaining[r.id] ?? remaining).length > 0 && (
                       <p className="mt-1.5 text-xs text-muted-foreground">
-                        Still to explore: {remaining.join(", ")}
+                        Still to explore: {(aiRemaining[r.id] ?? remaining).join(", ")}
                       </p>
+                    )}
+                    {aiRemaining[r.id] === undefined && (
+                      <button
+                        type="button"
+                        onClick={() => loadMore(r)}
+                        disabled={loadingMore === r.id}
+                        className="mt-1.5 inline-flex items-center gap-1 text-xs font-medium text-primary hover:underline disabled:opacity-60"
+                      >
+                        {loadingMore === r.id ? (
+                          <Loader2 className="size-3 animate-spin" />
+                        ) : (
+                          <Sparkles className="size-3" />
+                        )}
+                        See more places to explore
+                      </button>
                     )}
                   </div>
                 )}

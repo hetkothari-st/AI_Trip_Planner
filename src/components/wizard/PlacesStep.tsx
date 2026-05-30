@@ -36,6 +36,7 @@ export function PlacesStep() {
         regionName: region?.name,
         lat: p.lat,
         lng: p.lng,
+        photoUrl: (p as typeof p & { imageUrl?: string }).imageUrl,
         activities: [],
       });
   };

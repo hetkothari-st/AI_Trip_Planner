@@ -61,6 +61,7 @@ export function ItineraryStep() {
         regionName: region?.name,
         lat: p.lat,
         lng: p.lng,
+        photoUrl: p.imageUrl,
         budget: Math.round(
           computeCost({ places: [{ id: p.id, name: p.name, days: p.days }], hotels, activities, route: null })
             .total,

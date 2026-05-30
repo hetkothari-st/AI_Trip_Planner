@@ -13,6 +13,7 @@ export const VisitedPlaceSchema = z.object({
   regionName: z.string().optional(),
   lat: z.number().optional(),
   lng: z.number().optional(),
+  photoUrl: z.string().optional(),
   startDate: z.string().optional(), // ISO yyyy-mm-dd
   endDate: z.string().optional(),
   budget: z.number().optional(), // total INR spent

@@ -99,6 +99,7 @@ model VisitedPlace {
   regionName  String?
   lat         Float?
   lng         Float?
+  photoUrl    String?
   startDate   String?
   endDate     String?
   budget      Float?

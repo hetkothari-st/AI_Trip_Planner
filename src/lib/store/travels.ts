@@ -41,6 +41,26 @@ function syncDelete(clientId: string, id: string): void {
   }).catch(() => {});
 }
 
+/**
+ * Fill in a banner photo and map coordinates for an entry that's missing them (typically a
+ * manually-added one). Best-effort: patches the entry via `patch` when data comes back.
+ */
+function enrich(entry: VisitedPlace, patch: (id: string, p: Partial<VisitedPlace>) => void): void {
+  if (entry.photoUrl && entry.lat != null && entry.lng != null) return;
+  const q = `name=${encodeURIComponent(entry.name)}&destination=${encodeURIComponent(entry.destination)}`;
+  fetch(`/api/enrich?${q}`)
+    .then((r) => (r.ok ? r.json() : null))
+    .then((data: { photoUrl?: string; lat?: number; lng?: number } | null) => {
+      if (!data) return;
+      const p: Partial<VisitedPlace> = {};
+      if (!entry.photoUrl && data.photoUrl) p.photoUrl = data.photoUrl;
+      if (entry.lat == null && data.lat != null) p.lat = data.lat;
+      if (entry.lng == null && data.lng != null) p.lng = data.lng;
+      if (Object.keys(p).length) patch(entry.id, p);
+    })
+    .catch(() => {});
+}
+
 export const useTravels = create<TravelsState>()(
   persist(
     (set, get) => ({
@@ -52,6 +72,7 @@ export const useTravels = create<TravelsState>()(
         const entry: VisitedPlace = { ...v, id: uid(), createdAt: new Date().toISOString() };
         set((s) => ({ entries: [entry, ...s.entries] }));
         syncPut(get().clientId, entry);
+        enrich(entry, get().updateVisited);
         return entry;
       },
 
@@ -69,6 +90,7 @@ export const useTravels = create<TravelsState>()(
             const entry: VisitedPlace = { ...v, id: uid(), createdAt: new Date().toISOString() };
             fresh.push(entry);
             syncPut(clientId, entry);
+            enrich(entry, get().updateVisited);
           }
           return { entries: [...fresh, ...s.entries] };
         }),

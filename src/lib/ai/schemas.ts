@@ -28,6 +28,11 @@ export type Region = z.infer<typeof RegionSchema>;
 
 export const RegionsResponseSchema = z.object({ regions: z.array(RegionSchema).min(1) });
 
+/** A flat list of notable place names for a region (used by the travel-log "what's left"). */
+export const NotablePlacesResponseSchema = z.object({
+  places: z.array(z.string()).min(1),
+});
+
 /** Phase 2 — a dynamically generated, region-specific place category. */
 export const CategorySchema = z.object({
   id: z.string(),

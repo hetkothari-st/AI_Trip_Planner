@@ -13,6 +13,7 @@ type Row = {
   regionName: string | null;
   lat: number | null;
   lng: number | null;
+  photoUrl: string | null;
   startDate: string | null;
   endDate: string | null;
   budget: number | null;
@@ -31,6 +32,7 @@ function rowToVisited(r: Row): VisitedPlace {
     regionName: r.regionName ?? undefined,
     lat: r.lat ?? undefined,
     lng: r.lng ?? undefined,
+    photoUrl: r.photoUrl ?? undefined,
     startDate: r.startDate ?? undefined,
     endDate: r.endDate ?? undefined,
     budget: r.budget ?? undefined,

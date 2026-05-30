@@ -34,6 +34,7 @@ export function VisitedForm({
   const [activities, setActivities] = useState((initial?.activities ?? []).join(", "));
   const [rating, setRating] = useState(initial?.rating ?? 0);
   const [notes, setNotes] = useState(initial?.notes ?? "");
+  const [photoUrl, setPhotoUrl] = useState(initial?.photoUrl ?? "");
 
   const canSubmit = name.trim().length > 0 && destination.trim().length > 0;
 
@@ -54,6 +55,7 @@ export function VisitedForm({
         .filter(Boolean),
       rating: rating || undefined,
       notes: notes.trim() || undefined,
+      photoUrl: photoUrl.trim() || undefined,
     });
   }
 
@@ -157,6 +159,16 @@ export function VisitedForm({
           value={activities}
           onChange={(e) => setActivities(e.target.value)}
           placeholder="e.g. trekking, river rafting, temple visit"
+        />
+      </div>
+
+      <div>
+        <label className={labelCls}>Photo URL (optional — we&apos;ll find one if you skip it)</label>
+        <Input
+          className={inputCls}
+          value={photoUrl}
+          onChange={(e) => setPhotoUrl(e.target.value)}
+          placeholder="https://…"
         />
       </div>
 

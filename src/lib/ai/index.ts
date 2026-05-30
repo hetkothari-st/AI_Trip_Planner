@@ -4,6 +4,7 @@ import {
   ActivitiesResponseSchema,
   CategoriesResponseSchema,
   CityPlanSchema,
+  NotablePlacesResponseSchema,
   RankedPlacesResponseSchema,
   RegionsResponseSchema,
   type Activity,
@@ -298,6 +299,30 @@ a per-person price in INR, and a rating out of 5.`,
     mock: () => ({ activities: mockActivities(destination, city) }),
   });
   return res.activities;
+}
+
+const notablePlacesJsonSchema = {
+  type: "object",
+  properties: { places: { type: "array", items: { type: "string" } } },
+  required: ["places"],
+};
+
+/**
+ * A broad list of the genuinely notable places to visit in a region — used by the travel
+ * log to show "what's left to explore" after subtracting the places already visited.
+ */
+export async function notablePlaces(destination: string, region: Region): Promise<string[]> {
+  const res = await getLLM().generate({
+    system: SYSTEM,
+    prompt: `List 12-16 of the most notable, real places worth visiting in the "${region.name}"
+region of ${destination} — actual towns, temples, lakes, peaks, treks, viewpoints and
+landmarks that appear in travel guides. Return just their names, most iconic first. Never
+invent placeholders.`,
+    schema: NotablePlacesResponseSchema,
+    jsonSchema: notablePlacesJsonSchema,
+    mock: () => ({ places: region.samplePlaces }),
+  });
+  return res.places;
 }
 
 export type { Region, Category, RankedPlace, CityPlan, Activity } from "./schemas";

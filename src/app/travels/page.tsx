@@ -18,6 +18,7 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
 import { VisitedForm } from "@/components/travels/VisitedForm";
+import { MapPanel } from "@/components/map/MapPanel";
 import { useTravels } from "@/lib/store/travels";
 import { formatINR } from "@/lib/cost";
 import { tripDays, travelStats, type VisitedPlace } from "@/lib/travels/types";
@@ -34,6 +35,13 @@ export default function TravelsPage() {
   }, [hydrateFromServer]);
 
   const stats = useMemo(() => travelStats(entries), [entries]);
+  const mapped = useMemo(
+    () =>
+      entries
+        .filter((e) => e.lat != null && e.lng != null)
+        .map((e) => ({ id: e.id, name: e.name, lat: e.lat!, lng: e.lng! })),
+    [entries],
+  );
 
   // Group entries by destination for a clean, scannable log.
   const grouped = useMemo(() => {
@@ -89,6 +97,18 @@ export default function TravelsPage() {
             <Stat icon={CalendarDays} label="Days travelled" value={String(stats.totalDays)} />
             <Stat icon={Wallet} label="Total spent" value={formatINR(stats.totalBudget)} />
           </div>
+        )}
+
+        {/* map of everywhere visited */}
+        {mounted && mapped.length > 0 && (
+          <section className="mb-8">
+            <h2 className="mb-3 flex items-center gap-2 font-serif text-xl font-semibold">
+              <MapIcon className="size-4 text-primary" /> Where you&apos;ve been
+            </h2>
+            <div className="h-[360px] overflow-hidden rounded-xl border shadow-sm">
+              <MapPanel stops={mapped} route={null} />
+            </div>
+          </section>
         )}
 
         {/* add form */}
@@ -193,7 +213,15 @@ function EntryCard({
 }) {
   const days = tripDays(entry.startDate, entry.endDate);
   return (
-    <div className="flex flex-wrap items-start justify-between gap-3 rounded-xl border bg-card p-4 shadow-sm">
+    <div className="flex flex-wrap items-start gap-4 rounded-xl border bg-card p-4 shadow-sm">
+      {entry.photoUrl && (
+        // eslint-disable-next-line @next/next/no-img-element
+        <img
+          src={entry.photoUrl}
+          alt={entry.name}
+          className="h-20 w-28 shrink-0 rounded-lg object-cover"
+        />
+      )}
       <div className="min-w-0 flex-1">
         <div className="flex flex-wrap items-center gap-2">
           <h3 className="font-semibold">{entry.name}</h3>
