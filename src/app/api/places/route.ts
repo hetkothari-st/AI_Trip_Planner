@@ -28,8 +28,9 @@ export async function POST(req: Request) {
   // 2) Rank places with the LLM (or mock), grounded in the research digest.
   const places = await rankPlaces(destination, region, categoryIds, research);
 
-  // 3) Attach banner images + fold in any real research sources.
-  const images = await getImages(places.map((p) => p.imageQuery));
+  // 3) Attach banner images. Use the place NAME (+ destination to disambiguate) so the
+  //    image source can find the actual photo of that exact landmark, not generic scenery.
+  const images = await getImages(places.map((p) => `${p.name}, ${destination}`));
   const enriched = places.map((p, i) => ({
     ...p,
     imageUrl: images[i]?.url,
