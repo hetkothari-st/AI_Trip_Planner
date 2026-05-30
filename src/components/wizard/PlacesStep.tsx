@@ -2,8 +2,6 @@
 
 import { useState } from "react";
 import { ArrowLeft, ArrowRight, MapPinned, Trash2 } from "lucide-react";
-import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
 import { AlertDialog } from "@/components/ui/alert-dialog";
 import { PlaceBanner } from "@/components/places/PlaceBanner";
 import { useTrip, selectedRegions } from "@/lib/store/trip";
@@ -71,38 +69,48 @@ export function PlacesStep() {
     .filter((g) => g.catGroups.length > 0);
 
   const selectedCount = Object.keys(selected).length;
+  const totalDays = Object.values(selected).reduce((n, p) => n + p.days, 0);
 
   return (
-    <div>
-      <div className="mb-6 flex items-center justify-between gap-4">
+    <div className="animate-fade-in">
+      {/* Header */}
+      <header className="mb-12 flex flex-col justify-between gap-6 md:flex-row md:items-end">
         <div>
-          <h1 className="font-serif text-3xl font-semibold tracking-tight">
-            Choose cities to visit
+          <h1 className="text-6xl font-bold uppercase leading-[0.9] tracking-tighter md:text-7xl">
+            Choose Your <span className="text-tertiary">Cities.</span>
           </h1>
-          <p className="mt-1 text-muted-foreground">
-            Towns and bases across your selected regions, by style. Add the ones you want —
-            we suggest how many days each needs, and you can adjust.
-          </p>
+          <div className="mt-4 flex items-center gap-4">
+            <div className="h-1 w-12 bg-primary" />
+            <p className="max-w-xl text-base font-medium leading-tight text-on-surface-variant">
+              Ranked towns and bases across your selected zones, by style. Add the ones you
+              want — we suggest the days each needs; adjust freely.
+            </p>
+          </div>
         </div>
-        <Button variant="ghost" onClick={back}>
+        <button
+          onClick={back}
+          className="flex items-center gap-2 self-start border-2 border-primary bg-surface px-5 py-2.5 text-xs font-bold uppercase tracking-widest text-primary transition-colors hover:bg-surface-container"
+        >
           <ArrowLeft className="size-4" /> Back
-        </Button>
-      </div>
+        </button>
+      </header>
 
-      <div className="space-y-12">
+      <div className="space-y-14">
         {regionGroups.map(({ region: rg, catGroups }) => (
           <div key={rg.id} className="space-y-8">
-            <div className="flex items-center gap-3 border-b pb-2">
-              <MapPinned className="size-5 text-primary" />
-              <h2 className="font-serif text-2xl font-semibold">{rg.name}</h2>
+            <div className="flex items-center gap-4 border-b-2 border-primary pb-3">
+              <MapPinned className="size-6 text-primary" />
+              <h2 className="text-3xl font-bold uppercase tracking-tighter">{rg.name}</h2>
             </div>
             {catGroups.map(({ catId, cities }) => (
               <section key={catId}>
-                <div className="mb-4 flex items-center gap-3">
-                  <h3 className="font-semibold">{labelFor(catId)}</h3>
-                  <Badge variant="muted">{cities.length} cities</Badge>
+                <div className="mb-5 flex items-center gap-3">
+                  <h3 className="text-lg font-bold uppercase tracking-wide">{labelFor(catId)}</h3>
+                  <span className="border-2 border-primary bg-primary-container px-2 py-0.5 text-[10px] font-bold uppercase tracking-wide text-primary">
+                    {cities.length} {cities.length === 1 ? "City" : "Cities"}
+                  </span>
                 </div>
-                <div className="grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
+                <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
                   {cities.map((p) => (
                     <PlaceBanner
                       key={p.id}
@@ -122,25 +130,29 @@ export function PlacesStep() {
         ))}
       </div>
 
-      {/* sticky action bar */}
-      <div className="sticky bottom-4 mt-10 flex items-center justify-between gap-3 rounded-xl border bg-card/90 p-4 shadow-lg backdrop-blur">
-        <div className="flex items-center gap-2 text-sm">
+      {/* Sticky action bar */}
+      <div className="sticky bottom-4 mt-12 flex flex-col items-start justify-between gap-3 border-[3px] border-primary bg-surface p-4 neo-shadow sm:flex-row sm:items-center">
+        <div className="flex items-center gap-2 text-sm font-medium text-on-surface-variant">
           <MapPinned className="size-4 text-primary" />
-          <span className="font-medium">{selectedCount}</span> places ·{" "}
-          <span className="font-medium">
-            {Object.values(selected).reduce((n, p) => n + p.days, 0)}
-          </span>{" "}
-          days planned
+          <span className="text-lg font-bold text-primary">{selectedCount}</span> cities ·{" "}
+          <span className="text-lg font-bold text-primary">{totalDays}</span> days planned
         </div>
-        <div className="flex items-center gap-2">
+        <div className="flex w-full items-center gap-2 sm:w-auto">
           {selectedCount > 0 && (
-            <Button variant="ghost" size="sm" onClick={() => setClearOpen(true)}>
-              <Trash2 className="size-4 text-destructive" /> Clear all
-            </Button>
+            <button
+              onClick={() => setClearOpen(true)}
+              className="flex items-center gap-1.5 border-2 border-primary bg-surface px-4 py-3 text-xs font-bold uppercase tracking-widest text-secondary transition-colors hover:bg-secondary hover:text-white"
+            >
+              <Trash2 className="size-4" /> Clear
+            </button>
           )}
-          <Button size="lg" disabled={selectedCount < 1} onClick={next}>
-            Plan each city <ArrowRight className="size-4" />
-          </Button>
+          <button
+            disabled={selectedCount < 1}
+            onClick={next}
+            className="flex flex-1 items-center justify-center gap-2 border-2 border-primary bg-primary-container px-8 py-3 text-sm font-bold uppercase tracking-widest text-primary neo-shadow-hover disabled:opacity-50 sm:flex-none"
+          >
+            Plan Each City <ArrowRight className="size-4" strokeWidth={3} />
+          </button>
         </div>
       </div>
 
