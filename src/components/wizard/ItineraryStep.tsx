@@ -13,11 +13,14 @@ import {
   Utensils,
   CalendarDays,
   BadgeCheck,
+  Save,
+  Check,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { MapPanel } from "@/components/map/MapPanel";
 import { useTrip, selectedList } from "@/lib/store/trip";
+import { saveActiveTrip } from "@/lib/store/tripManager";
 import { useTravels } from "@/lib/store/travels";
 import { computeCost, formatINR } from "@/lib/cost";
 import { downloadExcel, downloadPdf, type Sheet } from "@/lib/export";
@@ -50,6 +53,13 @@ export function ItineraryStep() {
   const router = useRouter();
   const { addManyVisited } = useTravels();
   const [logged, setLogged] = useState(false);
+  const [savedTrip, setSavedTrip] = useState(false);
+
+  function saveTrip() {
+    saveActiveTrip("saved");
+    setSavedTrip(true);
+    setTimeout(() => setSavedTrip(false), 2500);
+  }
 
   // Convert the whole planned trip into bucket-list entries, one per city, then jump to
   // the travel log. Per-place budget reuses the cost model (hotel + activities + food).
@@ -124,6 +134,10 @@ export function ItineraryStep() {
           <ArrowLeft className="size-4" /> Back
         </Button>
         <div className="flex flex-wrap gap-2">
+          <Button variant="outline" onClick={saveTrip}>
+            {savedTrip ? <Check className="size-4" /> : <Save className="size-4" />}{" "}
+            {savedTrip ? "Saved to My trips ✓" : "Save trip"}
+          </Button>
           <Button variant="outline" onClick={markVisited} disabled={logged}>
             <BadgeCheck className="size-4" /> {logged ? "Added to travels ✓" : "Mark trip as visited"}
           </Button>

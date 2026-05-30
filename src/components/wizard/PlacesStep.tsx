@@ -1,8 +1,10 @@
 "use client";
 
-import { ArrowLeft, ArrowRight, MapPinned } from "lucide-react";
+import { useState } from "react";
+import { ArrowLeft, ArrowRight, MapPinned, Trash2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
+import { AlertDialog } from "@/components/ui/alert-dialog";
 import { PlaceBanner } from "@/components/places/PlaceBanner";
 import { useTrip } from "@/lib/store/trip";
 import { useTravels } from "@/lib/store/travels";
@@ -17,10 +19,12 @@ export function PlacesStep() {
     selected,
     togglePlace,
     setDays,
+    clearPlaces,
     back,
     next,
   } = useTrip();
   const { entries, addVisited, removeVisited } = useTravels();
+  const [clearOpen, setClearOpen] = useState(false);
 
   // Toggle a place in/out of the user's travel log (the "I've already been here" tick).
   const toggleVisited = (p: (typeof places)[number]) => {
@@ -95,7 +99,7 @@ export function PlacesStep() {
       </div>
 
       {/* sticky action bar */}
-      <div className="sticky bottom-4 mt-10 flex items-center justify-between rounded-xl border bg-card/90 p-4 shadow-lg backdrop-blur">
+      <div className="sticky bottom-4 mt-10 flex items-center justify-between gap-3 rounded-xl border bg-card/90 p-4 shadow-lg backdrop-blur">
         <div className="flex items-center gap-2 text-sm">
           <MapPinned className="size-4 text-primary" />
           <span className="font-medium">{selectedCount}</span> places ·{" "}
@@ -104,10 +108,29 @@ export function PlacesStep() {
           </span>{" "}
           days planned
         </div>
-        <Button size="lg" disabled={selectedCount < 1} onClick={next}>
-          Plan each city <ArrowRight className="size-4" />
-        </Button>
+        <div className="flex items-center gap-2">
+          {selectedCount > 0 && (
+            <Button variant="ghost" size="sm" onClick={() => setClearOpen(true)}>
+              <Trash2 className="size-4 text-destructive" /> Clear all
+            </Button>
+          )}
+          <Button size="lg" disabled={selectedCount < 1} onClick={next}>
+            Plan each city <ArrowRight className="size-4" />
+          </Button>
+        </div>
       </div>
+
+      <AlertDialog
+        open={clearOpen}
+        onOpenChange={setClearOpen}
+        title="Clear all selected places?"
+        description={`This removes all ${selectedCount} selected ${
+          selectedCount === 1 ? "place" : "places"
+        } along with their city plans, hotels and activities. Your destination and region stay.`}
+        confirmLabel="Clear all"
+        destructive
+        onConfirm={clearPlaces}
+      />
     </div>
   );
 }

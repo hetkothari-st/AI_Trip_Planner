@@ -2,11 +2,14 @@
 
 import Link from "next/link";
 import { useEffect, useState } from "react";
-import { Compass, RotateCcw, MapPin } from "lucide-react";
+import { Compass, MapPin, Save, Plus, Check, Luggage } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
+import { AlertDialog } from "@/components/ui/alert-dialog";
 import { Stepper } from "@/components/wizard/Stepper";
 import { AuthButton } from "@/components/auth/AuthButton";
+import { saveActiveTrip, startNewTrip } from "@/lib/store/tripManager";
+import { snapshotOf, tripHasContent } from "@/lib/store/trip";
 import { DestinationStep } from "@/components/wizard/DestinationStep";
 import { RegionStep } from "@/components/wizard/RegionStep";
 import { CategoryStep } from "@/components/wizard/CategoryStep";
@@ -19,7 +22,17 @@ import { useTrip, type WizardStep } from "@/lib/store/trip";
 export default function PlanPage() {
   const [mounted, setMounted] = useState(false);
   const store = useTrip();
+  const [savedFlag, setSavedFlag] = useState(false);
+  const [newTripOpen, setNewTripOpen] = useState(false);
   useEffect(() => setMounted(true), []);
+
+  const hasContent = tripHasContent(snapshotOf(store));
+
+  function saveDraft() {
+    saveActiveTrip("draft");
+    setSavedFlag(true);
+    setTimeout(() => setSavedFlag(false), 2000);
+  }
 
   // The furthest step the user may jump to, based on the data they've provided.
   const maxReached: WizardStep = !store.regions.length
@@ -48,22 +61,40 @@ export default function PlanPage() {
           <div className="flex items-center gap-1">
             <AuthButton />
             <Button asChild variant="ghost" size="sm">
+              <Link href="/trips">
+                <Luggage className="size-4" /> My trips
+              </Link>
+            </Button>
+            <Button asChild variant="ghost" size="sm">
               <Link href="/travels">
                 <MapPin className="size-4" /> My travels
               </Link>
             </Button>
+            {mounted && hasContent && (
+              <Button variant="ghost" size="sm" onClick={saveDraft}>
+                {savedFlag ? <Check className="size-4" /> : <Save className="size-4" />}{" "}
+                {savedFlag ? "Saved" : "Save draft"}
+              </Button>
+            )}
             <Button
               variant="ghost"
               size="sm"
-              onClick={() => {
-                store.reset();
-              }}
+              onClick={() => (hasContent ? setNewTripOpen(true) : undefined)}
             >
-              <RotateCcw className="size-4" /> Restart
+              <Plus className="size-4" /> New trip
             </Button>
           </div>
         </div>
       </header>
+
+      <AlertDialog
+        open={newTripOpen}
+        onOpenChange={setNewTripOpen}
+        title="Start a new trip?"
+        description="Your current trip will be saved as a draft in My trips, and the planner will reset to a blank slate."
+        confirmLabel="Save & start new"
+        onConfirm={() => startNewTrip({ save: true })}
+      />
 
       <main className="container py-10">
         {!mounted ? (

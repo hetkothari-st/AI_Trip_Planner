@@ -14,6 +14,7 @@ import {
   CalendarDays,
   Wallet,
   Map as MapIcon,
+  Luggage,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -80,6 +81,11 @@ export default function TravelsPage() {
           </Link>
           <div className="flex items-center gap-1">
             <AuthButton />
+            <Button asChild variant="ghost" size="sm">
+              <Link href="/trips">
+                <Luggage className="size-4" /> My trips
+              </Link>
+            </Button>
             <Button asChild variant="ghost" size="sm">
               <Link href="/plan">
                 <MapIcon className="size-4" /> Plan a trip

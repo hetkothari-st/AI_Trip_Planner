@@ -32,6 +32,9 @@ export default function Home() {
         </div>
         <div className="flex items-center gap-1">
           <Button asChild variant="ghost">
+            <Link href="/trips">My trips</Link>
+          </Button>
+          <Button asChild variant="ghost">
             <Link href="/travels">My travels</Link>
           </Button>
           <AuthButton />

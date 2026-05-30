@@ -13,30 +13,27 @@ export interface SelectedPlace extends RankedPlace {
   imageUrl?: string;
 }
 
-interface TripState {
+/** The serializable data of a trip (everything in TripState except the actions). */
+export interface TripSnapshot {
   step: WizardStep;
   tripId: string | null;
-
   destination: string;
   regions: Region[];
   region: Region | null;
-
   categories: Category[];
   selectedCategoryIds: string[];
-
   places: RankedPlace[];
-  selected: Record<string, SelectedPlace>; // keyed by place id
-  order: string[]; // selected place ids, in itinerary order
-
-  cityPlans: Record<string, CityPlan>; // Phase 5
-  hotels: Record<string, Hotel>; // Phase 6, keyed by place id
-  activities: Record<string, Activity[]>; // Phase 10, keyed by place id
-
-  startId: string | null; // Phase 9
+  selected: Record<string, SelectedPlace>;
+  order: string[];
+  cityPlans: Record<string, CityPlan>;
+  hotels: Record<string, Hotel>;
+  activities: Record<string, Activity[]>;
+  startId: string | null;
   endId: string | null;
-
   route: RouteResult | null;
+}
 
+interface TripState extends TripSnapshot {
   // navigation
   goTo: (step: WizardStep) => void;
   next: () => void;
@@ -59,6 +56,10 @@ interface TripState {
   setEnd: (id: string | null) => void;
   setRoute: (r: RouteResult | null) => void;
 
+  /** Deselect every place at once (drops their derived city plans, hotels, activities). */
+  clearPlaces: () => void;
+  /** Replace the whole wizard with a saved snapshot. */
+  load: (snap: TripSnapshot) => void;
   reset: () => void;
 }
 
@@ -160,6 +161,18 @@ export const useTrip = create<TripState>()(
       setEnd: (endId) => set({ endId }),
       setRoute: (route) => set({ route }),
 
+      clearPlaces: () =>
+        set({
+          selected: {},
+          order: [],
+          cityPlans: {},
+          hotels: {},
+          activities: {},
+          startId: null,
+          endId: null,
+          route: null,
+        }),
+      load: (snap) => set({ ...initial, ...snap }),
       reset: () => set({ ...initial }),
     }),
     { name: "ai-trip-planner" },
@@ -169,4 +182,31 @@ export const useTrip = create<TripState>()(
 /** Selected places in itinerary order. */
 export function selectedList(state: TripState): SelectedPlace[] {
   return state.order.map((id) => state.selected[id]).filter(Boolean);
+}
+
+/** Extract just the serializable trip data from the live store (drops the action fns). */
+export function snapshotOf(state: TripState): TripSnapshot {
+  return {
+    step: state.step,
+    tripId: state.tripId,
+    destination: state.destination,
+    regions: state.regions,
+    region: state.region,
+    categories: state.categories,
+    selectedCategoryIds: state.selectedCategoryIds,
+    places: state.places,
+    selected: state.selected,
+    order: state.order,
+    cityPlans: state.cityPlans,
+    hotels: state.hotels,
+    activities: state.activities,
+    startId: state.startId,
+    endId: state.endId,
+    route: state.route,
+  };
+}
+
+/** True when the wizard holds enough to be worth saving (a destination, at least). */
+export function tripHasContent(s: TripSnapshot): boolean {
+  return !!s.destination || s.regions.length > 0 || Object.keys(s.selected).length > 0;
 }
