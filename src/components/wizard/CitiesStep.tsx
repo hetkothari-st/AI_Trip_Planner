@@ -15,10 +15,10 @@ import {
   Flame,
   BedDouble,
   Check,
+  Minus,
+  Plus,
   Map as MapTab,
 } from "lucide-react";
-import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
 import { HotelPanel } from "@/components/hotels/HotelPanel";
 import { ActivitiesPanel } from "@/components/activities/ActivitiesPanel";
 import { CityMiniMap } from "@/components/map/CityMiniMap";
@@ -79,23 +79,38 @@ export function CitiesStep() {
 
   const tabOf = (id: string): Tab => tabs[id] ?? "itinerary";
 
+  const TABS: { id: Tab; label: (h: boolean, n: number) => string; icon: typeof Sparkles }[] = [
+    { id: "itinerary", label: () => "Itinerary", icon: Sparkles },
+    { id: "hotels", label: (h) => (h ? "Hotel ✓" : "Hotels"), icon: BedDouble },
+    { id: "activities", label: (_h, n) => (n ? `Activities (${n})` : "Activities"), icon: Mountain },
+    { id: "map", label: () => "Map", icon: MapTab },
+  ];
+
   return (
-    <div>
-      <div className="mb-6 flex items-center justify-between">
+    <div className="animate-fade-in">
+      {/* Header */}
+      <header className="mb-10 flex flex-col justify-between gap-4 md:flex-row md:items-end">
         <div>
-          <h1 className="font-serif text-3xl font-semibold tracking-tight">Plan each city</h1>
-          <p className="mt-1 text-muted-foreground">
-            A day-by-day mini-itinerary, hotels with live price comparison, and curated
-            activities for every stop — costs add up live on the right.
+          <h1 className="text-6xl font-bold uppercase leading-[0.85] tracking-tighter md:text-7xl">
+            Plan Each
+            <br />
+            City
+          </h1>
+          <p className="mt-4 max-w-xl border-l-4 border-primary pl-6 text-base font-medium text-on-surface-variant">
+            Day-by-day mini-itineraries, hotels with live price comparison, and curated
+            activities — costs add up live on the right.
           </p>
         </div>
-        <Button variant="ghost" onClick={back}>
+        <button
+          onClick={back}
+          className="flex items-center gap-2 self-start border-2 border-primary bg-surface px-5 py-2.5 text-xs font-bold uppercase tracking-widest text-primary transition-colors hover:bg-surface-container"
+        >
           <ArrowLeft className="size-4" /> Back
-        </Button>
-      </div>
+        </button>
+      </header>
 
       <div className="grid gap-6 lg:grid-cols-[1fr_320px]">
-        <div className="space-y-6">
+        <div className="space-y-8">
           {places.map((p) => {
             const plan = cityPlans[p.id];
             const isLoading = loading[p.id];
@@ -106,82 +121,87 @@ export function CitiesStep() {
             const acts = activities[p.id] ?? [];
 
             return (
-              <div key={p.id} className="overflow-hidden rounded-xl border bg-card shadow-sm">
+              <div key={p.id} className="overflow-hidden border-[3px] border-primary bg-surface-bright neo-shadow">
                 {/* header */}
-                <div className="flex flex-wrap items-center justify-between gap-3 border-b bg-muted/30 p-4">
-                  <div className="flex items-center gap-2">
-                    <MapPin className="size-5 text-primary" />
-                    <h2 className="font-serif text-xl font-semibold">{p.name}</h2>
+                <div className="flex flex-wrap items-center justify-between gap-3 border-b-[3px] border-primary bg-primary p-5 text-white">
+                  <div className="flex items-center gap-3">
+                    <MapPin className="size-6 text-primary-container" />
+                    <h2 className="text-3xl font-bold uppercase tracking-tighter">{p.name}</h2>
                     {plan && (
-                      <Badge variant="muted" className="ml-1">
-                        <Sparkles className="mr-1 size-3" /> AI suggests {plan.recommendedDays}{" "}
-                        {plan.recommendedDays === 1 ? "day" : "days"}
-                      </Badge>
+                      <span className="flex items-center gap-1 bg-primary-container px-2 py-1 text-[10px] font-bold uppercase tracking-wide text-primary">
+                        <Sparkles className="size-3" /> AI: {plan.recommendedDays}
+                        {plan.recommendedDays === 1 ? "d" : "d"}
+                      </span>
                     )}
                   </div>
                   <div className="flex items-center gap-2">
-                    <span className="text-sm text-muted-foreground">Staying</span>
-                    <div className="flex items-center rounded-md border">
-                      <button className="px-2.5 py-1.5 text-sm hover:bg-muted" onClick={() => setDays(p.id, p.days - 1)} aria-label="Fewer days">
-                        −
+                    <span className="text-[10px] font-bold uppercase tracking-widest text-white/70">Staying</span>
+                    <div className="flex items-center border-2 border-white">
+                      <button
+                        className="flex size-8 items-center justify-center hover:bg-white hover:text-primary"
+                        onClick={() => setDays(p.id, p.days - 1)}
+                        aria-label="Fewer days"
+                      >
+                        <Minus className="size-3.5" strokeWidth={3} />
                       </button>
-                      <span className="min-w-[60px] text-center text-sm font-medium">
+                      <span className="min-w-[56px] text-center text-sm font-bold">
                         {p.days} {p.days === 1 ? "day" : "days"}
                       </span>
-                      <button className="px-2.5 py-1.5 text-sm hover:bg-muted" onClick={() => setDays(p.id, p.days + 1)} aria-label="More days">
-                        +
+                      <button
+                        className="flex size-8 items-center justify-center hover:bg-white hover:text-primary"
+                        onClick={() => setDays(p.id, p.days + 1)}
+                        aria-label="More days"
+                      >
+                        <Plus className="size-3.5" strokeWidth={3} />
                       </button>
                     </div>
                   </div>
                 </div>
 
                 {/* tab bar */}
-                <div className="flex gap-1 border-b px-4 pt-2">
-                  {(
-                    [
-                      { id: "itinerary" as Tab, label: "Itinerary", icon: Sparkles },
-                      { id: "hotels" as Tab, label: hotel ? "Hotel ✓" : "Hotels", icon: BedDouble },
-                      { id: "activities" as Tab, label: acts.length ? `Activities (${acts.length})` : "Activities", icon: Mountain },
-                      { id: "map" as Tab, label: "Map", icon: MapTab },
-                    ]
-                  ).map((t) => (
-                    <button
-                      key={t.id}
-                      onClick={() => setTabs((s) => ({ ...s, [p.id]: t.id }))}
-                      className={cn(
-                        "flex items-center gap-1.5 border-b-2 px-3 py-2 text-sm font-medium transition-colors",
-                        tab === t.id
-                          ? "border-primary text-foreground"
-                          : "border-transparent text-muted-foreground hover:text-foreground",
-                      )}
-                    >
-                      <t.icon className="size-4" /> {t.label}
-                    </button>
-                  ))}
+                <div className="flex flex-wrap gap-0 border-b-[3px] border-primary">
+                  {TABS.map((t) => {
+                    const active = tab === t.id;
+                    return (
+                      <button
+                        key={t.id}
+                        onClick={() => setTabs((s) => ({ ...s, [p.id]: t.id }))}
+                        className={cn(
+                          "flex items-center gap-1.5 border-r-2 border-primary px-4 py-3 text-xs font-bold uppercase tracking-widest transition-colors",
+                          active
+                            ? "bg-primary-container text-primary"
+                            : "bg-surface-bright text-on-surface-variant hover:bg-surface-container",
+                        )}
+                      >
+                        <t.icon className="size-4" /> {t.label(!!hotel, acts.length)}
+                      </button>
+                    );
+                  })}
                 </div>
 
-                <div className="p-4">
+                <div className="p-5">
                   {tab === "itinerary" && (
                     <>
                       {!plan && isLoading && (
-                        <div className="flex items-center gap-2 py-8 text-muted-foreground">
-                          <Loader2 className="size-4 animate-spin" /> Building {p.name}&apos;s
-                          itinerary…
+                        <div className="flex items-center gap-2 py-8 text-sm font-bold uppercase tracking-wide text-on-surface-variant">
+                          <Loader2 className="size-4 animate-spin" /> Building {p.name}&apos;s itinerary…
                         </div>
                       )}
                       {plan && (
                         <div className="grid gap-6 lg:grid-cols-[1fr_280px]">
                           <div className="space-y-3">
                             <div className="flex flex-wrap items-center justify-between gap-2">
-                              <p className="text-sm text-muted-foreground">
-                                <span className="font-medium text-foreground">{keptNames.length}</span> of{" "}
-                                {plan.spots.length} spots · AI suggests{" "}
-                                <span className="font-medium text-foreground">{sugg}d</span>
+                              <p className="text-xs font-bold uppercase tracking-wide text-on-surface-variant">
+                                <span className="text-primary">{keptNames.length}</span> of {plan.spots.length} spots ·
+                                AI suggests <span className="text-primary">{sugg}d</span>
                               </p>
                               {p.days !== sugg && (
-                                <Button variant="outline" size="sm" onClick={() => setDays(p.id, sugg)}>
+                                <button
+                                  onClick={() => setDays(p.id, sugg)}
+                                  className="border-2 border-primary bg-surface px-3 py-1 text-[10px] font-bold uppercase tracking-wide hover:bg-primary-container"
+                                >
                                   Use {sugg} {sugg === 1 ? "day" : "days"}
-                                </Button>
+                                </button>
                               )}
                             </div>
                             <ul className="space-y-2">
@@ -194,33 +214,29 @@ export function CitiesStep() {
                                       type="button"
                                       onClick={() => toggleSpot(p.id, s.name)}
                                       className={cn(
-                                        "flex w-full items-start gap-3 rounded-lg border p-3 text-left transition-colors",
-                                        on
-                                          ? "border-primary bg-primary/5"
-                                          : "border-border opacity-60 hover:opacity-100",
+                                        "flex w-full items-start gap-3 border-2 border-primary p-3 text-left transition-all",
+                                        on ? "bg-primary-container" : "bg-surface-container-lowest opacity-60 hover:opacity-100",
                                       )}
                                     >
                                       <span
                                         className={cn(
-                                          "mt-0.5 flex size-5 shrink-0 items-center justify-center rounded-full border-2",
-                                          on
-                                            ? "border-primary bg-primary text-primary-foreground"
-                                            : "border-muted-foreground/40",
+                                          "mt-0.5 flex size-5 shrink-0 items-center justify-center border-2 border-primary",
+                                          on ? "bg-primary text-white" : "bg-surface",
                                         )}
                                       >
-                                        {on && <Check className="size-3" />}
+                                        {on && <Check className="size-3" strokeWidth={3} />}
                                       </span>
                                       <div className="flex-1">
-                                        <p className="flex items-center gap-1.5 font-medium">
-                                          <Icon className="size-3.5 text-primary" />
+                                        <p className="flex items-center gap-1.5 font-bold uppercase">
+                                          <Icon className="size-3.5" />
                                           {s.name}
                                         </p>
-                                        <p className="text-sm text-muted-foreground">{s.description}</p>
+                                        <p className="text-sm font-medium text-on-surface-variant">{s.description}</p>
                                       </div>
-                                      <Badge variant="muted" className="shrink-0">
-                                        <Clock className="mr-1 size-3" />
+                                      <span className="flex shrink-0 items-center gap-1 border border-primary px-1.5 py-0.5 text-[10px] font-bold uppercase">
+                                        <Clock className="size-3" />
                                         {fmtMin(s.durationMin)}
-                                      </Badge>
+                                      </span>
                                     </button>
                                   </li>
                                 );
@@ -229,32 +245,40 @@ export function CitiesStep() {
                           </div>
 
                           <aside className="space-y-4">
-                            <div className="rounded-lg border bg-muted/20 p-3">
-                              <p className="mb-2 text-xs font-medium uppercase tracking-wide text-muted-foreground">Famous for</p>
+                            <div className="border-2 border-primary bg-surface-container p-3">
+                              <p className="mb-2 text-[10px] font-bold uppercase tracking-widest text-on-surface-variant">
+                                Famous for
+                              </p>
                               <div className="flex flex-wrap gap-1.5">
                                 {plan.famousFor.map((f) => (
-                                  <Badge key={f} variant="secondary">{f}</Badge>
+                                  <span key={f} className="bg-secondary px-2 py-0.5 text-[10px] font-bold uppercase text-white">
+                                    {f}
+                                  </span>
                                 ))}
                               </div>
                             </div>
-                            <div className="rounded-lg border bg-muted/20 p-3">
-                              <p className="mb-2 flex items-center gap-1.5 text-xs font-medium uppercase tracking-wide text-muted-foreground">
+                            <div className="border-2 border-primary bg-surface-container p-3">
+                              <p className="mb-2 flex items-center gap-1.5 text-[10px] font-bold uppercase tracking-widest text-on-surface-variant">
                                 <Utensils className="size-3.5" /> Must-try local food
                               </p>
-                              <ul className="space-y-1 text-sm">
+                              <ul className="space-y-1 text-sm font-medium">
                                 {plan.localFood.map((f) => (
                                   <li key={f}>• {f}</li>
                                 ))}
                               </ul>
                             </div>
                             {plan.foodPlaces.length > 0 && (
-                              <div className="rounded-lg border bg-muted/20 p-3">
-                                <p className="mb-2 text-xs font-medium uppercase tracking-wide text-muted-foreground">Where to eat</p>
+                              <div className="border-2 border-primary bg-surface-container p-3">
+                                <p className="mb-2 text-[10px] font-bold uppercase tracking-widest text-on-surface-variant">
+                                  Where to eat
+                                </p>
                                 <ul className="space-y-2 text-sm">
                                   {plan.foodPlaces.map((fp) => (
                                     <li key={fp.name}>
-                                      <span className="font-medium">{fp.name}</span> — {fp.dish}
-                                      {fp.note && <span className="block text-xs text-muted-foreground">{fp.note}</span>}
+                                      <span className="font-bold">{fp.name}</span> — {fp.dish}
+                                      {fp.note && (
+                                        <span className="block text-xs text-on-surface-variant">{fp.note}</span>
+                                      )}
                                     </li>
                                   ))}
                                 </ul>
@@ -291,16 +315,16 @@ export function CitiesStep() {
 
                 {/* selection footer */}
                 {(hotel || acts.length > 0) && (
-                  <div className="flex flex-wrap items-center gap-3 border-t bg-muted/20 px-4 py-2 text-sm">
+                  <div className="flex flex-wrap items-center gap-4 border-t-2 border-primary bg-surface-container px-5 py-3 text-sm font-bold">
                     {hotel && (
-                      <span className="flex items-center gap-1">
-                        <BedDouble className="size-3.5 text-primary" /> {hotel.name} ·{" "}
+                      <span className="flex items-center gap-1.5">
+                        <BedDouble className="size-4 text-tertiary" /> {hotel.name} ·{" "}
                         {formatINR(hotel.pricePerNight * p.days)}
                       </span>
                     )}
                     {acts.length > 0 && (
-                      <span className="flex items-center gap-1">
-                        <Mountain className="size-3.5 text-primary" /> {acts.length} activities
+                      <span className="flex items-center gap-1.5">
+                        <Mountain className="size-4 text-tertiary" /> {acts.length} activities
                       </span>
                     )}
                   </div>
@@ -311,18 +335,22 @@ export function CitiesStep() {
         </div>
 
         {/* sticky cost rail */}
-        <aside className="lg:sticky lg:top-20 lg:self-start">
+        <aside className="lg:sticky lg:top-24 lg:self-start">
           <CostSummary />
         </aside>
       </div>
 
-      <div className="sticky bottom-4 mt-8 flex items-center justify-between rounded-xl border bg-card/90 p-4 shadow-lg backdrop-blur">
-        <p className="text-sm text-muted-foreground">
-          {places.length} cities · {places.reduce((n, p) => n + p.days, 0)} days total
+      <div className="sticky bottom-4 mt-8 flex flex-col items-start justify-between gap-3 border-[3px] border-primary bg-surface p-4 neo-shadow sm:flex-row sm:items-center">
+        <p className="text-sm font-medium text-on-surface-variant">
+          <span className="text-lg font-bold text-primary">{places.length}</span> cities ·{" "}
+          <span className="text-lg font-bold text-primary">{places.reduce((n, p) => n + p.days, 0)}</span> days total
         </p>
-        <Button size="lg" onClick={next}>
-          View route on map <ArrowRight className="size-4" />
-        </Button>
+        <button
+          onClick={next}
+          className="flex w-full items-center justify-center gap-2 border-2 border-primary bg-primary-container px-8 py-3 text-sm font-bold uppercase tracking-widest text-primary neo-shadow-hover sm:w-auto"
+        >
+          View Route on Map <ArrowRight className="size-4" strokeWidth={3} />
+        </button>
       </div>
     </div>
   );

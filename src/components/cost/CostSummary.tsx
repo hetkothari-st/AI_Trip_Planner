@@ -22,16 +22,18 @@ export function CostSummary({ compact = false }: { compact?: boolean }) {
   });
 
   return (
-    <div className="rounded-xl border bg-card p-4 shadow-sm">
-      <div className="flex items-center justify-between">
-        <h3 className="flex items-center gap-2 font-semibold">
-          <Wallet className="size-4 text-primary" /> Estimated cost
+    <div className="border-[3px] border-primary bg-surface-bright p-5 neo-shadow">
+      <div className="flex items-center justify-between border-b-2 border-primary pb-3">
+        <h3 className="flex items-center gap-2 text-sm font-bold uppercase tracking-widest">
+          <Wallet className="size-4" /> Est. Cost
         </h3>
-        <span className="font-serif text-xl font-semibold">{formatINR(cost.total)}</span>
+        <span className="text-2xl font-bold">{formatINR(cost.total)}</span>
       </div>
-      <p className="mt-0.5 text-xs text-muted-foreground">For 2 travellers · updates live</p>
+      <p className="mt-1 text-[10px] font-bold uppercase tracking-wide text-on-surface-variant">
+        For 2 travellers · updates live
+      </p>
 
-      <dl className="mt-3 space-y-2">
+      <dl className="mt-4 space-y-3">
         {(Object.keys(CAT_META) as CostCategory[]).map((c) => {
           const Icon = CAT_META[c].icon;
           const amt = cost.byCategory[c];
@@ -39,13 +41,13 @@ export function CostSummary({ compact = false }: { compact?: boolean }) {
           return (
             <div key={c}>
               <div className="flex items-center justify-between text-sm">
-                <span className="flex items-center gap-1.5 text-muted-foreground">
+                <span className="flex items-center gap-1.5 font-bold uppercase tracking-wide text-on-surface-variant">
                   <Icon className="size-3.5" /> {CAT_META[c].label}
                 </span>
-                <span className="font-medium">{formatINR(amt)}</span>
+                <span className="font-bold">{formatINR(amt)}</span>
               </div>
-              <div className="mt-1 h-1.5 w-full overflow-hidden rounded-full bg-muted">
-                <div className="h-full rounded-full bg-primary/70" style={{ width: `${pct}%` }} />
+              <div className="mt-1 h-2 w-full border border-primary bg-surface-container">
+                <div className="h-full bg-primary" style={{ width: `${pct}%` }} />
               </div>
             </div>
           );
@@ -53,11 +55,11 @@ export function CostSummary({ compact = false }: { compact?: boolean }) {
       </dl>
 
       {!compact && cost.items.length > 0 && (
-        <ul className="mt-4 space-y-1 border-t pt-3 text-xs text-muted-foreground">
+        <ul className="mt-4 space-y-1 border-t-2 border-primary/15 pt-3 text-xs text-on-surface-variant">
           {cost.items.map((it, i) => (
             <li key={i} className="flex justify-between gap-3">
               <span className="truncate">{it.label}</span>
-              <span className="shrink-0">{formatINR(it.amount)}</span>
+              <span className="shrink-0 font-bold">{formatINR(it.amount)}</span>
             </li>
           ))}
         </ul>

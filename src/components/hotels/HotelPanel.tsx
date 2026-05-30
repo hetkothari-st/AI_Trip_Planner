@@ -2,8 +2,6 @@
 
 import { useState } from "react";
 import { Loader2, Star, Check, ExternalLink, BadgeCheck, ChevronDown, MapPin, Navigation } from "lucide-react";
-import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
 import { Slider } from "@/components/ui/slider";
 import { cn, estTravel, formatDuration } from "@/lib/utils";
 import { useTrip, selectedSpotsOf } from "@/lib/store/trip";
@@ -57,10 +55,10 @@ export function HotelPanel({
   return (
     <div className="space-y-4">
       {/* filters */}
-      <div className="flex flex-wrap items-end gap-5 rounded-lg border bg-muted/20 p-4">
+      <div className="flex flex-wrap items-end gap-5 border-2 border-primary bg-surface-container p-4">
         <div className="min-w-[220px] flex-1">
-          <label className="mb-2 flex items-center justify-between text-sm font-medium">
-            Max per night <span className="text-primary">{formatINR(budgetMax)}</span>
+          <label className="mb-2 flex items-center justify-between text-xs font-bold uppercase tracking-wide">
+            Max per night <span className="text-tertiary">{formatINR(budgetMax)}</span>
           </label>
           <Slider
             min={1500}
@@ -71,15 +69,15 @@ export function HotelPanel({
           />
         </div>
         <div>
-          <label className="mb-2 block text-sm font-medium">Min rating</label>
+          <label className="mb-2 block text-xs font-bold uppercase tracking-wide">Min rating</label>
           <div className="flex gap-1">
             {[3, 4, 5].map((s) => (
               <button
                 key={s}
                 onClick={() => setMinStars(s)}
                 className={cn(
-                  "flex items-center gap-1 rounded-md border px-2.5 py-1.5 text-sm",
-                  minStars === s ? "border-primary bg-primary/10 text-primary" : "hover:bg-muted",
+                  "flex items-center gap-1 border-2 border-primary px-2.5 py-1.5 text-sm font-bold transition-colors",
+                  minStars === s ? "bg-primary-container text-primary" : "bg-surface hover:bg-surface-container-high",
                 )}
               >
                 {s}
@@ -88,20 +86,24 @@ export function HotelPanel({
             ))}
           </div>
         </div>
-        <Button onClick={search} disabled={loading}>
+        <button
+          onClick={search}
+          disabled={loading}
+          className="flex items-center gap-2 border-2 border-primary bg-primary px-6 py-2.5 text-xs font-bold uppercase tracking-widest text-white transition-colors hover:bg-tertiary disabled:opacity-50"
+        >
           {loading ? <Loader2 className="size-4 animate-spin" /> : null}
-          {list ? "Update" : "Find hotels"}
-        </Button>
+          {list ? "Update" : "Find Hotels"}
+        </button>
       </div>
 
       {loading && !list && (
-        <p className="flex items-center gap-2 py-4 text-sm text-muted-foreground">
+        <p className="flex items-center gap-2 py-4 text-sm font-bold uppercase tracking-wide text-on-surface-variant">
           <Loader2 className="size-4 animate-spin" /> Comparing hotels across booking sites…
         </p>
       )}
 
       {list && list.length === 0 && (
-        <p className="py-4 text-sm text-muted-foreground">
+        <p className="py-4 text-sm font-bold uppercase tracking-wide text-on-surface-variant">
           No hotels within {formatINR(budgetMax)}/night — raise the budget.
         </p>
       )}
@@ -114,43 +116,43 @@ export function HotelPanel({
             <div
               key={h.id}
               className={cn(
-                "flex flex-col overflow-hidden rounded-xl border bg-card",
-                isChosen && "ring-2 ring-primary",
+                "flex flex-col overflow-hidden border-2 border-primary bg-surface-container-lowest",
+                isChosen && "neo-shadow",
               )}
             >
               <div className="flex gap-3 p-3">
                 {/* eslint-disable-next-line @next/next/no-img-element */}
-                <img src={h.imageUrl} alt={h.name} className="h-24 w-28 shrink-0 rounded-lg object-cover" />
+                <img src={h.imageUrl} alt={h.name} className="h-24 w-28 shrink-0 border-2 border-primary object-cover" />
                 <div className="min-w-0 flex-1">
                   <div className="flex items-center gap-1">
                     {Array.from({ length: h.stars }).map((_, i) => (
-                      <Star key={i} className="size-3 fill-amber-400 text-amber-400" />
+                      <Star key={i} className="size-3 fill-primary-fixed-dim text-primary-fixed-dim" />
                     ))}
-                    <span className="ml-1 text-xs text-muted-foreground">{h.rating}/5</span>
+                    <span className="ml-1 text-[10px] font-bold uppercase text-on-surface-variant">{h.rating}/5</span>
                   </div>
-                  <h4 className="truncate font-semibold">{h.name}</h4>
-                  <p className="flex items-center gap-1 text-xs text-muted-foreground">
+                  <h4 className="truncate text-base font-bold uppercase">{h.name}</h4>
+                  <p className="flex items-center gap-1 text-[11px] font-medium text-on-surface-variant">
                     <MapPin className="size-3" /> {h.area} · {h.distanceToCenterKm.toFixed(1)} km from centre
                   </p>
                   <div className="mt-1">
-                    <span className="font-serif text-lg font-semibold">{formatINR(h.pricePerNight)}</span>
-                    <span className="text-xs text-muted-foreground"> /night · best on {h.bestPriceSite}</span>
+                    <span className="text-lg font-bold">{formatINR(h.pricePerNight)}</span>
+                    <span className="text-[11px] font-medium text-on-surface-variant"> /night · best on {h.bestPriceSite}</span>
                   </div>
                 </div>
               </div>
 
               <div className="flex flex-wrap gap-1.5 px-3">
                 {h.amenities.slice(0, 5).map((a) => (
-                  <Badge key={a} variant="muted">
+                  <span key={a} className="border border-primary px-1.5 py-0.5 text-[10px] font-bold uppercase">
                     {a}
-                  </Badge>
+                  </span>
                 ))}
               </div>
 
               {/* price comparison */}
               <button
                 onClick={() => setExpanded(isOpen ? null : h.id)}
-                className="mt-2 flex items-center justify-between px-3 py-2 text-sm text-primary hover:bg-muted/40"
+                className="mt-2 flex items-center justify-between px-3 py-2 text-xs font-bold uppercase tracking-wide text-tertiary hover:bg-surface-container"
               >
                 Compare {h.prices.length} sites
                 <ChevronDown className={cn("size-4 transition-transform", isOpen && "rotate-180")} />
@@ -163,15 +165,13 @@ export function HotelPanel({
                         href={p.url}
                         target="_blank"
                         rel="noreferrer"
-                        className="flex items-center gap-1 hover:underline"
+                        className="flex items-center gap-1 font-medium hover:underline"
                       >
                         {p.site} <ExternalLink className="size-3" />
                       </a>
-                      <span className={cn("font-medium", i === 0 && "text-primary")}>
+                      <span className={cn("font-bold", i === 0 && "text-tertiary")}>
                         {formatINR(p.price)}
-                        {i === 0 && (
-                          <BadgeCheck className="ml-1 inline size-3.5" />
-                        )}
+                        {i === 0 && <BadgeCheck className="ml-1 inline size-3.5" />}
                       </span>
                     </li>
                   ))}
@@ -183,7 +183,7 @@ export function HotelPanel({
                 <>
                   <button
                     onClick={() => setSpotsOpen(spotsOpen === h.id ? null : h.id)}
-                    className="flex items-center justify-between border-t px-3 py-2 text-sm text-primary hover:bg-muted/40"
+                    className="flex items-center justify-between border-t-2 border-primary/15 px-3 py-2 text-xs font-bold uppercase tracking-wide text-tertiary hover:bg-surface-container"
                   >
                     <span className="flex items-center gap-1">
                       <Navigation className="size-3.5" /> Distance to your {spots.length} spots
@@ -197,8 +197,8 @@ export function HotelPanel({
                         .sort((a, b) => a.t.distanceKm - b.t.distanceKm)
                         .map(({ s, t }) => (
                           <li key={s.name} className="flex items-center justify-between gap-2">
-                            <span className="truncate">{s.name}</span>
-                            <span className="shrink-0 text-muted-foreground">
+                            <span className="truncate font-medium">{s.name}</span>
+                            <span className="shrink-0 text-on-surface-variant">
                               {t.distanceKm.toFixed(1)} km · {formatDuration(t.durationSec)}
                             </span>
                           </li>
@@ -209,15 +209,18 @@ export function HotelPanel({
               )}
 
               <div className="mt-auto p-3 pt-1">
-                <Button
-                  variant={isChosen ? "secondary" : "default"}
-                  size="sm"
-                  className="w-full"
+                <button
                   onClick={() => setHotel(placeId, isChosen ? null : h)}
+                  className={cn(
+                    "flex w-full items-center justify-center gap-2 border-2 border-primary px-4 py-2.5 text-xs font-bold uppercase tracking-widest transition-colors",
+                    isChosen
+                      ? "bg-primary text-white hover:bg-secondary"
+                      : "bg-primary-container text-primary hover:bg-primary hover:text-white",
+                  )}
                 >
-                  {isChosen ? <Check className="size-4" /> : null}
-                  {isChosen ? `Selected · ${formatINR(h.pricePerNight * nights)} for ${nights} nights` : "Select hotel"}
-                </Button>
+                  {isChosen ? <Check className="size-4" strokeWidth={3} /> : null}
+                  {isChosen ? `Selected · ${formatINR(h.pricePerNight * nights)} / ${nights} nights` : "Select Hotel"}
+                </button>
               </div>
             </div>
           );
