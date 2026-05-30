@@ -30,6 +30,12 @@ export function ItineraryStep() {
   const { destination, region, cityPlans, hotels, activities, route, back } = store;
   const places = selectedList(store);
   const totalDays = places.reduce((n, p) => n + p.days, 0);
+  // Continuous day numbering across the whole trip: city i starts the day after city i-1 ends.
+  const startDays: number[] = [];
+  places.reduce((acc, p) => {
+    startDays.push(acc);
+    return acc + p.days;
+  }, 0);
   const cost = computeCost({
     places: places.map((p) => ({ id: p.id, name: p.name, days: p.days })),
     hotels,
@@ -39,12 +45,13 @@ export function ItineraryStep() {
 
   function exportExcel() {
     const itinRows: (string | number)[][] = [];
-    places.forEach((p) => {
+    places.forEach((p, idx) => {
       const plan = cityPlans[p.id];
       if (!plan) return;
       const perDay = Math.ceil(plan.spots.length / p.days);
       plan.spots.forEach((s, i) => {
-        itinRows.push([p.name, Math.floor(i / perDay) + 1, s.name, fmtMin(s.durationMin), s.category]);
+        const day = startDays[idx] + Math.floor(i / perDay) + 1;
+        itinRows.push([p.name, day, s.name, fmtMin(s.durationMin), s.category]);
       });
     });
     const hotelRows = places
@@ -131,20 +138,35 @@ export function ItineraryStep() {
           </div>
         </section>
 
-        {/* per-city */}
+        {/* one continuous trip — cities in optimized route order, days run end-to-end */}
         {places.map((p, idx) => {
           const plan = cityPlans[p.id];
           const hotel = hotels[p.id];
           const acts = activities[p.id] ?? [];
           const perDay = plan ? Math.ceil(plan.spots.length / p.days) : 0;
+          const startDay = startDays[idx];
+          const leg = idx > 0 ? route?.legs[idx - 1] : null;
+          const dayRange =
+            p.days === 1
+              ? `Day ${startDay + 1}`
+              : `Days ${startDay + 1}–${startDay + p.days}`;
           return (
-            <section key={p.id} className="break-inside-avoid rounded-xl border p-5">
-              <div className="flex items-center gap-3">
+            <section key={p.id} className="break-inside-avoid space-y-0">
+              {/* travel connector from the previous city */}
+              {leg && (
+                <div className="my-2 flex items-center gap-2 pl-4 text-xs text-muted-foreground">
+                  <MapPin className="size-3.5" />
+                  Drive {Math.round(leg.distanceKm)} km · {formatDuration(leg.durationSec)} to{" "}
+                  {p.name}
+                </div>
+              )}
+              <div className="rounded-xl border p-5">
+              <div className="flex flex-wrap items-center gap-3">
                 <span className="flex size-8 items-center justify-center rounded-full bg-primary text-sm font-bold text-primary-foreground">
                   {idx + 1}
                 </span>
                 <h2 className="font-serif text-2xl font-semibold">{p.name}</h2>
-                <Badge variant="muted">{p.days} {p.days === 1 ? "day" : "days"}</Badge>
+                <Badge variant="muted">{dayRange}</Badge>
               </div>
 
               {plan && (
@@ -155,7 +177,7 @@ export function ItineraryStep() {
                       if (!daySpots.length) return null;
                       return (
                         <div key={dayIdx}>
-                          <h3 className="mb-1.5 font-semibold">Day {dayIdx + 1}</h3>
+                          <h3 className="mb-1.5 font-semibold">Day {startDay + dayIdx + 1}</h3>
                           <ul className="ml-4 list-disc space-y-1 text-sm">
                             {daySpots.map((s, i) => (
                               <li key={i}>
@@ -206,6 +228,7 @@ export function ItineraryStep() {
                   </aside>
                 </div>
               )}
+              </div>
             </section>
           );
         })}

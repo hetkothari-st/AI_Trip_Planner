@@ -129,10 +129,43 @@ return a fixed generic list. Give each a short id, label, description, and an ic
     jsonSchema: categoriesJsonSchema,
     mock: () => ({ categories: mockCategories(destination, region.id) }),
   });
-  return res.categories;
+  return ensurePopularAndOffbeat(res.categories, region.name);
 }
 
-/** Phase 3 — rank top places for the chosen categories, grounded in research. */
+/**
+ * Guarantee the Style page always offers a "Popular" and an "Offbeat/Untouched" section,
+ * since users expect both. If the model already produced an equivalent (matched loosely by
+ * keyword) we keep it; otherwise we inject one. Popular goes first, offbeat last.
+ */
+function ensurePopularAndOffbeat(categories: Category[], regionName: string): Category[] {
+  const has = (re: RegExp) => categories.some((c) => re.test(`${c.id} ${c.label}`));
+  const out = [...categories];
+
+  if (!has(/popular|most.?visited|trending|famous|top/i)) {
+    out.unshift({
+      id: "popular",
+      label: "Popular & Most-Visited",
+      description: `The crowd-favourite, must-see highlights of ${regionName}.`,
+      icon: "flame",
+    });
+  }
+  if (!has(/offbeat|untouched|hidden|remote|off.?the.?beaten|lesser/i)) {
+    out.push({
+      id: "offbeat",
+      label: "Offbeat & Untouched",
+      description: `Quiet, pristine corners of ${regionName} away from the tourist trail.`,
+      icon: "leaf",
+    });
+  }
+  return out;
+}
+
+/**
+ * Phase 3 — rank top places for the chosen categories, grounded in research.
+ * One LLM call PER category (run in parallel). Keeping each response small avoids
+ * hitting max_tokens and truncating the JSON — which previously corrupted the whole
+ * batch and silently dropped every category to mock placeholders.
+ */
 export async function rankPlaces(
   destination: string,
   region: Region,
@@ -145,18 +178,29 @@ export async function rankPlaces(
         .join("\n")}`
     : "";
 
-  const res = await getLLM().generate({
-    system: SYSTEM,
-    prompt: `Rank the top places to visit in the "${region.name}" region of ${destination}
-for these categories: ${categoryIds.join(", ")}. Return up to 4 places per category, each
-with a rank (1 = best within its category), a vivid description, best season, highlights,
-real coordinates, an image search query, and source references.${researchBlock}`,
-    schema: RankedPlacesResponseSchema,
-    jsonSchema: placesJsonSchema,
-    mock: () => ({ places: mockPlaces(destination, region.id, categoryIds) }),
-  });
-  // Merge any real research sources into AI/mock output for transparency.
-  return res.places;
+  const perCategory = await Promise.all(
+    categoryIds.map((categoryId) =>
+      getLLM()
+        .generate({
+          system: SYSTEM,
+          prompt: `Rank the top 4 real places to visit in the "${region.name}" region of
+${destination} for the category "${categoryId}". Use ACTUAL named places (real temples,
+lakes, peaks, towns, treks) — never generic placeholders. Every place's categoryId MUST be
+exactly "${categoryId}". Give each a rank (1 = best), a vivid description, best season,
+highlights, REAL coordinates inside ${destination}, an image search query, and sources.${researchBlock}`,
+          schema: RankedPlacesResponseSchema,
+          jsonSchema: placesJsonSchema,
+          mock: () => ({ places: mockPlaces(destination, region, [categoryId]) }),
+        })
+        .then((r) =>
+          // Force the categoryId so grouping in the UI is always correct.
+          r.places.map((p, i) => ({ ...p, categoryId, rank: i + 1 })),
+        )
+        .catch(() => mockPlaces(destination, region, [categoryId])),
+    ),
+  );
+
+  return perCategory.flat();
 }
 
 const cityPlanJsonSchema = {

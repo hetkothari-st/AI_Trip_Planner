@@ -155,21 +155,27 @@ export function mockCategories(destination: string, regionId: string): Category[
 
 export function mockPlaces(
   destination: string,
-  regionId: string,
+  region: Region,
   categoryIds: string[],
 ): RankedPlace[] {
+  const regionId = region.id;
   const catSet = new Set(categoryIds);
   let pool: { name: string; lat: number; lng: number; categories: string[] }[];
 
   if (isUttarakhand(destination) && UTTARAKHAND_PLACES[regionId]) {
     pool = UTTARAKHAND_PLACES[regionId];
   } else {
-    // synthesize several places per requested category
+    // Synthesize from the region's REAL sample places so names are plausible and
+    // coordinates stay clustered around the region centre (never off in another country).
+    const samples = region.samplePlaces?.length
+      ? region.samplePlaces
+      : [`${region.name} Town`, `${region.name} Viewpoint`, `${region.name} Valley`];
     pool = categoryIds.flatMap((cat) =>
-      [0, 1, 2, 3, 4, 5].map((n) => ({
-        name: `${cat.replace(/-/g, " ")} highlight ${n + 1}`,
-        lat: 28 + seededRandom(`${destination}-${cat}-${n}-lat`) * 6,
-        lng: 76 + seededRandom(`${destination}-${cat}-${n}-lng`) * 8,
+      samples.map((name, n) => ({
+        name,
+        // jitter ≤ ~0.4° (~45 km) around the region centre — keeps pins inside the region.
+        lat: region.lat + (seededRandom(`${destination}-${cat}-${name}-lat`) - 0.5) * 0.8,
+        lng: region.lng + (seededRandom(`${destination}-${cat}-${name}-lng`) - 0.5) * 0.8,
         categories: [cat],
       })),
     );
@@ -180,7 +186,7 @@ export function mockPlaces(
     const categoryId = p.categories.find((c) => catSet.has(c)) ?? categoryIds[0] ?? "popular";
     const s = seasonality(`${destination}-${p.name}`);
     return {
-      id: `${regionId}-${p.name.toLowerCase().replace(/\s+/g, "-")}`,
+      id: `${regionId}-${categoryId}-${p.name.toLowerCase().replace(/\s+/g, "-")}`,
       name: p.name,
       categoryId,
       rank: i + 1,

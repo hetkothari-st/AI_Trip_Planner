@@ -16,7 +16,8 @@ describe("mock data conforms to schemas", () => {
   });
 
   it("ranks places within selected categories", () => {
-    const places = mockPlaces("Uttarakhand", "garhwal", ["popular", "untouched"]);
+    const garhwal = mockRegions("Uttarakhand").find((r) => r.id === "garhwal")!;
+    const places = mockPlaces("Uttarakhand", garhwal, ["popular", "untouched"]);
     expect(places.length).toBeGreaterThan(0);
     places.forEach((p) => expect(() => RankedPlaceSchema.parse(p)).not.toThrow());
     // ranks restart at 1 per category

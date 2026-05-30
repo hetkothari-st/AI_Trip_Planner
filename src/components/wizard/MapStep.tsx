@@ -19,6 +19,8 @@ export function MapStep() {
   // Recompute the route in real time whenever the ordered stops change.
   const key = places.map((p) => p.id).join("|");
   const lastKey = useRef<string>("");
+  // Track which stop-sets we've already auto-optimized so we only do it once per set.
+  const autoOptimized = useRef<string>("");
 
   useEffect(() => {
     if (key === lastKey.current) return;
@@ -36,6 +38,27 @@ export function MapStep() {
       .catch(() => setRoute(null))
       .finally(() => setLoading(false));
   }, [key, places, setRoute]);
+
+  // Auto-optimize the order once per stop-set so the trip defaults to the least-travel
+  // sequence (user can still re-pick start/end and re-optimize manually).
+  useEffect(() => {
+    const set = [...places.map((p) => p.id)].sort().join("|");
+    if (places.length < 3 || autoOptimized.current === set) return;
+    autoOptimized.current = set;
+    const stops = places.map((p) => ({ name: p.name, lat: p.lat, lng: p.lng }));
+    optimizeRoute(stops, startId ? store.selected[startId]?.name : undefined)
+      .then(({ ordered, route: optRoute }) => {
+        const byName = new Map(places.map((p) => [p.name, p.id]));
+        const newOrder = ordered.map((s) => byName.get(s.name)).filter(Boolean) as string[];
+        if (newOrder.length === places.length) {
+          lastKey.current = newOrder.join("|");
+          setOrder(newOrder);
+          setRoute(optRoute);
+        }
+      })
+      .catch(() => {});
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [key]);
 
   async function optimize() {
     if (places.length < 3) return;
