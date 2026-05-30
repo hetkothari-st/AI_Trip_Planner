@@ -212,6 +212,41 @@ export function mockPlaces(
   });
 }
 
+/** Cities/towns of a region (mock) — drawn from its real sample places. */
+export function mockCities(destination: string, region: Region, categoryId: string): RankedPlace[] {
+  const curated = isUttarakhand(destination) ? UTTARAKHAND_PLACES[region.id] : undefined;
+  const names = curated ? curated.map((p) => p.name) : region.samplePlaces;
+  const coordOf = (name: string) => {
+    const hit = curated?.find((p) => p.name === name);
+    if (hit) return { lat: hit.lat, lng: hit.lng };
+    return {
+      lat: region.lat + (seededRandom(`${region.id}-${name}-lat`) - 0.5) * 0.8,
+      lng: region.lng + (seededRandom(`${region.id}-${name}-lng`) - 0.5) * 0.8,
+    };
+  };
+  return names.slice(0, 6).map((name, i) => {
+    const { lat, lng } = coordOf(name);
+    const s = seasonality(`${destination}-${name}`);
+    return {
+      id: `${region.id}-${categoryId}-${name.toLowerCase().replace(/\s+/g, "-")}`,
+      name,
+      categoryId,
+      rank: i + 1,
+      description: `${name} is a noted ${region.name} base in ${destination}, good for ${categoryId} travel — a comfortable hub for the area's key spots.`,
+      bestSeason: bestSeasonOf(s),
+      highlights: ["Central base", "Good stay options", "Easy day trips"],
+      lat,
+      lng,
+      imageQuery: `${name} ${destination}`,
+      recommendedDays: 1 + (i % 3),
+      sources: [
+        { kind: "web" as const, title: `Things to do in ${name}` },
+        { kind: "youtube" as const, title: `${name} travel guide` },
+      ],
+    };
+  });
+}
+
 // ─── Phase 5: mini-itinerary mock ──────────────────────────────────────────────
 
 const SPOT_TEMPLATES: { suffix: string; category: CitySpot["category"]; durationMin: number }[] = [

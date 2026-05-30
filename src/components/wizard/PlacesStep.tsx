@@ -6,15 +6,17 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { AlertDialog } from "@/components/ui/alert-dialog";
 import { PlaceBanner } from "@/components/places/PlaceBanner";
-import { useTrip } from "@/lib/store/trip";
+import { useTrip, selectedRegions } from "@/lib/store/trip";
 import { useTravels } from "@/lib/store/travels";
 import { isPlaceVisited, namesMatch, normalizeName } from "@/lib/travels/types";
 
 export function PlacesStep() {
+  const store = useTrip();
   const {
     destination,
     region,
     categories,
+    selectedCategoryIds,
     places,
     selected,
     togglePlace,
@@ -22,7 +24,8 @@ export function PlacesStep() {
     clearPlaces,
     back,
     next,
-  } = useTrip();
+  } = store;
+  const chosenRegions = selectedRegions(store);
   const { entries, addVisited, removeVisited } = useTravels();
   const [clearOpen, setClearOpen] = useState(false);
 
@@ -48,11 +51,24 @@ export function PlacesStep() {
   const labelFor = (id: string) =>
     categories.find((c) => c.id === id)?.label ?? id.replace(/-/g, " ");
 
-  // group places by their category bucket, preserving rank order
-  const groups = places.reduce<Record<string, typeof places>>((acc, p) => {
-    (acc[p.categoryId] ??= []).push(p);
-    return acc;
-  }, {});
+  // Does this city belong to a category? Cities merged across categories carry categoryIds.
+  const cityInCategory = (p: (typeof places)[number], catId: string) => {
+    const ids = (p as typeof p & { categoryIds?: string[] }).categoryIds;
+    return ids ? ids.includes(catId) : p.categoryId === catId;
+  };
+
+  // Group cities by region, then by category (skipping empty buckets).
+  const regionGroups = chosenRegions
+    .map((rg) => ({
+      region: rg,
+      catGroups: selectedCategoryIds
+        .map((catId) => ({
+          catId,
+          cities: places.filter((p) => p.regionName === rg.name && cityInCategory(p, catId)),
+        }))
+        .filter((g) => g.cities.length > 0),
+    }))
+    .filter((g) => g.catGroups.length > 0);
 
   const selectedCount = Object.keys(selected).length;
 
@@ -61,11 +77,11 @@ export function PlacesStep() {
       <div className="mb-6 flex items-center justify-between gap-4">
         <div>
           <h1 className="font-serif text-3xl font-semibold tracking-tight">
-            Top places in {region?.name}
+            Choose cities to visit
           </h1>
           <p className="mt-1 text-muted-foreground">
-            Ranked from across the web, YouTube and Reddit. Pick places from any section —
-            set how many days you’ll spend at each.
+            Towns and bases across your selected regions, by style. Add the ones you want —
+            we suggest how many days each needs, and you can adjust.
           </p>
         </div>
         <Button variant="ghost" onClick={back}>
@@ -73,28 +89,36 @@ export function PlacesStep() {
         </Button>
       </div>
 
-      <div className="space-y-10">
-        {Object.entries(groups).map(([catId, list]) => (
-          <section key={catId}>
-            <div className="mb-4 flex items-center gap-3">
-              <h2 className="font-serif text-xl font-semibold">{labelFor(catId)}</h2>
-              <Badge variant="muted">{list.length} places</Badge>
+      <div className="space-y-12">
+        {regionGroups.map(({ region: rg, catGroups }) => (
+          <div key={rg.id} className="space-y-8">
+            <div className="flex items-center gap-3 border-b pb-2">
+              <MapPinned className="size-5 text-primary" />
+              <h2 className="font-serif text-2xl font-semibold">{rg.name}</h2>
             </div>
-            <div className="grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
-              {list.map((p) => (
-                <PlaceBanner
-                  key={p.id}
-                  place={p}
-                  selected={!!selected[p.id]}
-                  days={selected[p.id]?.days ?? 1}
-                  onToggle={() => togglePlace(p)}
-                  onDays={(d) => setDays(p.id, d)}
-                  visited={isPlaceVisited(p.name, destination, entries)}
-                  onToggleVisited={() => toggleVisited(p)}
-                />
-              ))}
-            </div>
-          </section>
+            {catGroups.map(({ catId, cities }) => (
+              <section key={catId}>
+                <div className="mb-4 flex items-center gap-3">
+                  <h3 className="font-semibold">{labelFor(catId)}</h3>
+                  <Badge variant="muted">{cities.length} cities</Badge>
+                </div>
+                <div className="grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
+                  {cities.map((p) => (
+                    <PlaceBanner
+                      key={p.id}
+                      place={p}
+                      selected={!!selected[p.id]}
+                      days={selected[p.id]?.days ?? p.recommendedDays ?? 1}
+                      onToggle={() => togglePlace(p)}
+                      onDays={(d) => setDays(p.id, d)}
+                      visited={isPlaceVisited(p.name, destination, entries)}
+                      onToggleVisited={() => toggleVisited(p)}
+                    />
+                  ))}
+                </div>
+              </section>
+            ))}
+          </div>
         ))}
       </div>
 

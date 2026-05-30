@@ -1,25 +1,28 @@
 "use client";
 
 import { useState } from "react";
-import { Loader2, Check, ArrowLeft, BadgeCheck, Sparkles } from "lucide-react";
+import { Loader2, Check, Plus, ArrowLeft, ArrowRight, BadgeCheck, Sparkles } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { cn } from "@/lib/utils";
-import { useTrip } from "@/lib/store/trip";
+import { useTrip, selectedRegions } from "@/lib/store/trip";
 import { useTravels } from "@/lib/store/travels";
 import { visitedInRegion, remainingSamplePlaces, isPlaceVisited } from "@/lib/travels/types";
 import { SEASON_EMOJI, SEASON_MONTHS, SEASON_ORDER, seasonBadge } from "@/lib/season";
 import type { Region } from "@/lib/ai/schemas";
 
 export function RegionStep() {
-  const { destination, regions, region, chooseRegion, setCategories, back, next } = useTrip();
+  const store = useTrip();
+  const { destination, regions, selectedRegionIds, toggleRegion, setCategories, back, next } = store;
   const { entries } = useTravels();
-  const [loadingId, setLoadingId] = useState<string | null>(null);
+  const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   // AI-discovered "what's left to explore", loaded on demand per region.
   const [aiRemaining, setAiRemaining] = useState<Record<string, string[]>>({});
   const [loadingMore, setLoadingMore] = useState<string | null>(null);
+
+  const chosen = selectedRegions(store);
 
   async function loadMore(r: Region) {
     setLoadingMore(r.id);
@@ -41,24 +44,26 @@ export function RegionStep() {
     }
   }
 
-  async function pick(r: Region) {
-    chooseRegion(r);
-    setLoadingId(r.id);
+  // Continue with all selected regions: generate travel styles once (from the primary
+  // region — the style types generalise across the picked regions) and advance.
+  async function proceed() {
+    if (chosen.length === 0) return;
+    setLoading(true);
     setError(null);
     try {
       const res = await fetch("/api/categories", {
         method: "POST",
         headers: { "content-type": "application/json" },
-        body: JSON.stringify({ destination, region: r }),
+        body: JSON.stringify({ destination, region: chosen[0] }),
       });
       if (!res.ok) throw new Error();
       const data = await res.json();
       setCategories(data.categories);
       next();
     } catch {
-      setError("Couldn’t load travel styles for that region. Please try again.");
+      setError("Couldn’t load travel styles. Please try again.");
     } finally {
-      setLoadingId(null);
+      setLoading(false);
     }
   }
 
@@ -67,10 +72,11 @@ export function RegionStep() {
       <div className="mb-6 flex items-center justify-between">
         <div>
           <h1 className="font-serif text-3xl font-semibold tracking-tight">
-            Which part of {destination}?
+            Which parts of {destination}?
           </h1>
           <p className="mt-1 text-muted-foreground">
-            Each belt has its own character and best season. Pick one to continue.
+            Each belt has its own character and best season. Pick one or more to combine
+            into a single trip.
           </p>
         </div>
         <Button variant="ghost" onClick={back}>
@@ -83,7 +89,7 @@ export function RegionStep() {
       <div className="grid gap-5 md:grid-cols-2 xl:grid-cols-3">
         {regions.map((r) => {
           const max = Math.max(...SEASON_ORDER.map((s) => r.seasonality[s] ?? 0));
-          const selected = region?.id === r.id;
+          const selected = selectedRegionIds.includes(r.id);
           const visited = visitedInRegion(entries, destination, r.name);
           const remaining = remainingSamplePlaces(r, destination, entries);
           return (
@@ -180,20 +186,29 @@ export function RegionStep() {
 
                 <Button
                   className="mt-auto"
-                  onClick={() => pick(r)}
-                  disabled={loadingId !== null}
+                  variant={selected ? "secondary" : "default"}
+                  onClick={() => toggleRegion(r.id)}
                 >
-                  {loadingId === r.id ? (
-                    <Loader2 className="size-4 animate-spin" />
-                  ) : selected ? (
-                    <Check className="size-4" />
-                  ) : null}
-                  {loadingId === r.id ? "Loading styles" : `Explore ${r.name}`}
+                  {selected ? <Check className="size-4" /> : <Plus className="size-4" />}
+                  {selected ? "Added" : `Add ${r.name}`}
                 </Button>
               </CardContent>
             </Card>
           );
         })}
+      </div>
+
+      {/* sticky continue bar */}
+      <div className="sticky bottom-4 mt-10 flex items-center justify-between gap-3 rounded-xl border bg-card/90 p-4 shadow-lg backdrop-blur">
+        <p className="text-sm text-muted-foreground">
+          <span className="font-medium text-foreground">{chosen.length}</span>{" "}
+          {chosen.length === 1 ? "region" : "regions"} selected
+          {chosen.length > 0 && <> · {chosen.map((r) => r.name).join(", ")}</>}
+        </p>
+        <Button size="lg" disabled={chosen.length === 0 || loading} onClick={proceed}>
+          {loading ? <Loader2 className="size-4 animate-spin" /> : <ArrowRight className="size-4" />}
+          {loading ? "Loading styles…" : "Choose travel styles"}
+        </Button>
       </div>
     </div>
   );

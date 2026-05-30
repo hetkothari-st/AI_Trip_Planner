@@ -19,7 +19,8 @@ export interface TripSnapshot {
   tripId: string | null;
   destination: string;
   regions: Region[];
-  region: Region | null;
+  region: Region | null; // "primary" (first selected) — kept for previews/itinerary hero
+  selectedRegionIds: string[]; // multi-region selection
   categories: Category[];
   selectedCategoryIds: string[];
   places: RankedPlace[];
@@ -43,6 +44,7 @@ interface TripState extends TripSnapshot {
   setDestination: (d: string) => void;
   setRegions: (r: Region[]) => void;
   chooseRegion: (r: Region) => void;
+  toggleRegion: (id: string) => void;
   setCategories: (c: Category[]) => void;
   toggleCategory: (id: string) => void;
   setPlaces: (p: RankedPlace[]) => void;
@@ -69,6 +71,7 @@ const initial = {
   destination: "",
   regions: [] as Region[],
   region: null,
+  selectedRegionIds: [] as string[],
   categories: [] as Category[],
   selectedCategoryIds: [] as string[],
   places: [] as RankedPlace[],
@@ -94,7 +97,16 @@ export const useTrip = create<TripState>()(
       setDestination: (destination) => set({ destination }),
       setRegions: (regions) => set({ regions }),
       chooseRegion: (region) =>
-        set({ region, categories: [], selectedCategoryIds: [], places: [] }),
+        set({ region, selectedRegionIds: [region.id], categories: [], selectedCategoryIds: [], places: [] }),
+      toggleRegion: (id) =>
+        set((s) => {
+          const ids = s.selectedRegionIds.includes(id)
+            ? s.selectedRegionIds.filter((r) => r !== id)
+            : [...s.selectedRegionIds, id];
+          // Keep `region` as the first selected (drives previews + itinerary hero).
+          const primary = s.regions.find((r) => r.id === ids[0]) ?? null;
+          return { selectedRegionIds: ids, region: primary };
+        }),
       setCategories: (categories) => set({ categories }),
       toggleCategory: (id) =>
         set((s) => ({
@@ -127,7 +139,7 @@ export const useTrip = create<TripState>()(
               endId: s.endId === p.id ? null : s.endId,
             };
           }
-          selected[p.id] = { ...p, days: 1 };
+          selected[p.id] = { ...p, days: p.recommendedDays ?? 1 };
           order.push(p.id);
           return { selected, order };
         }),
@@ -184,6 +196,11 @@ export function selectedList(state: TripState): SelectedPlace[] {
   return state.order.map((id) => state.selected[id]).filter(Boolean);
 }
 
+/** The Region objects the user picked (multi-region), in discovery order. */
+export function selectedRegions(state: TripState): Region[] {
+  return state.regions.filter((r) => state.selectedRegionIds.includes(r.id));
+}
+
 /** Extract just the serializable trip data from the live store (drops the action fns). */
 export function snapshotOf(state: TripState): TripSnapshot {
   return {
@@ -192,6 +209,7 @@ export function snapshotOf(state: TripState): TripSnapshot {
     destination: state.destination,
     regions: state.regions,
     region: state.region,
+    selectedRegionIds: state.selectedRegionIds,
     categories: state.categories,
     selectedCategoryIds: state.selectedCategoryIds,
     places: state.places,

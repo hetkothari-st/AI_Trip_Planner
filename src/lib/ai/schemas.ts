@@ -68,6 +68,11 @@ export const RankedPlaceSchema = z.object({
   lng: z.number(),
   imageQuery: z.string(), // used to fetch a banner image
   sources: z.array(SourceSchema),
+  // When this place is a CITY/TOWN to base a stay in (Phase: city-centric hierarchy):
+  // the AI-suggested number of days to cover its key spots, and which region it sits in.
+  recommendedDays: z.number().int().min(1).max(10).optional(),
+  regionId: z.string().optional(),
+  regionName: z.string().optional(),
 });
 export type RankedPlace = z.infer<typeof RankedPlaceSchema>;
 

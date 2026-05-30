@@ -1,5 +1,5 @@
 import { getLLM } from "./provider";
-import { mockActivities, mockCategories, mockCityPlan, mockPlaces, mockRegions } from "./mock";
+import { mockActivities, mockCategories, mockCities, mockCityPlan, mockPlaces, mockRegions } from "./mock";
 import {
   ActivitiesResponseSchema,
   CategoriesResponseSchema,
@@ -202,6 +202,68 @@ highlights, REAL coordinates inside ${destination}, an image search query, and s
   );
 
   return perCategory.flat();
+}
+
+const citiesJsonSchema = {
+  type: "object",
+  properties: {
+    places: {
+      type: "array",
+      items: {
+        type: "object",
+        properties: {
+          id: { type: "string" }, name: { type: "string" }, categoryId: { type: "string" },
+          rank: { type: "number" }, description: { type: "string" },
+          bestSeason: { type: "string", enum: ["spring", "summer", "monsoon", "autumn", "winter"] },
+          highlights: { type: "array", items: { type: "string" } },
+          lat: { type: "number" }, lng: { type: "number" }, imageQuery: { type: "string" },
+          recommendedDays: { type: "number" },
+          sources: {
+            type: "array",
+            items: {
+              type: "object",
+              properties: {
+                kind: { type: "string", enum: ["web", "youtube", "reddit", "x", "ai"] },
+                title: { type: "string" }, url: { type: "string" },
+              },
+              required: ["kind", "title"],
+            },
+          },
+        },
+        required: ["id", "name", "categoryId", "rank", "description", "bestSeason", "highlights", "lat", "lng", "imageQuery", "recommendedDays", "sources"],
+      },
+    },
+  },
+  required: ["places"],
+};
+
+/**
+ * City-centric hierarchy — discover the actual CITIES/TOWNS in a region worth basing a
+ * stay in for a given category, each with an AI-suggested number of days to cover its key
+ * spots. Returned as RankedPlace so the existing selection/planning pipeline can consume it.
+ */
+export async function discoverCities(
+  destination: string,
+  region: Region,
+  categoryId: string,
+  research?: ResearchDigest,
+): Promise<RankedPlace[]> {
+  const researchBlock = research?.notes?.length
+    ? `\n\nGround your picks in these research signals:\n${research.notes.map((n) => `- ${n}`).join("\n")}`
+    : "";
+  const res = await getLLM().generate({
+    system: SYSTEM,
+    prompt: `List up to 5 real cities, towns or villages in the "${region.name}" region of
+${destination} that a traveller would base a stay in, suited to the "${categoryId}" style.
+Use ACTUAL place names (never placeholders). For each give: a rank (1 = best), a vivid
+description, best season, highlights, REAL coordinates of the town centre, an image search
+query, source references, and recommendedDays — the AI-suggested number of days to cover
+its key spots. Set every place's categoryId to exactly "${categoryId}".${researchBlock}`,
+    schema: RankedPlacesResponseSchema,
+    jsonSchema: citiesJsonSchema,
+    mock: () => ({ places: mockCities(destination, region, categoryId) }),
+  });
+  return res.places.map((p, i) => ({ ...p, categoryId, rank: i + 1 }));
 }
 
 const cityPlanJsonSchema = {

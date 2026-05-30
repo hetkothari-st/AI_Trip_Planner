@@ -4,8 +4,8 @@ import {
   MapPin,
   Compass,
   Sparkles,
-  Star,
   Building2,
+  CalendarDays,
   Route,
   FileDown,
   Save,
@@ -18,10 +18,10 @@ import type { WizardStep } from "@/lib/store/trip";
 
 const STEPS: { label: string; icon: LucideIcon }[] = [
   { label: "Destination", icon: MapPin },
-  { label: "Region", icon: Compass },
+  { label: "Regions", icon: Compass },
   { label: "Style", icon: Sparkles },
-  { label: "Places", icon: Star },
   { label: "Cities", icon: Building2 },
+  { label: "Plan", icon: CalendarDays },
   { label: "Map", icon: Route },
   { label: "Itinerary", icon: FileDown },
 ];

@@ -14,7 +14,7 @@ import {
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
-import { useTrip } from "@/lib/store/trip";
+import { useTrip, selectedRegions } from "@/lib/store/trip";
 
 const ICONS: Record<string, typeof Landmark> = {
   landmark: Landmark,
@@ -25,35 +25,37 @@ const ICONS: Record<string, typeof Landmark> = {
 };
 
 export function CategoryStep() {
+  const store = useTrip();
   const {
     destination,
-    region,
     categories,
     selectedCategoryIds,
     toggleCategory,
     setPlaces,
     back,
     next,
-  } = useTrip();
+  } = store;
+  const chosenRegions = selectedRegions(store);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  async function loadPlaces() {
-    if (!region || selectedCategoryIds.length === 0) return;
+  // Discover the CITIES/TOWNS to base a stay in, across every selected region × style.
+  async function loadCities() {
+    if (chosenRegions.length === 0 || selectedCategoryIds.length === 0) return;
     setLoading(true);
     setError(null);
     try {
-      const res = await fetch("/api/places", {
+      const res = await fetch("/api/cities", {
         method: "POST",
         headers: { "content-type": "application/json" },
-        body: JSON.stringify({ destination, region, categoryIds: selectedCategoryIds }),
+        body: JSON.stringify({ destination, regions: chosenRegions, categoryIds: selectedCategoryIds }),
       });
       if (!res.ok) throw new Error();
       const data = await res.json();
-      setPlaces(data.places);
+      setPlaces(data.cities);
       next();
     } catch {
-      setError("Couldn’t fetch ranked places. Please try again.");
+      setError("Couldn’t find cities to visit. Please try again.");
     } finally {
       setLoading(false);
     }
@@ -64,11 +66,12 @@ export function CategoryStep() {
       <div className="mb-6 flex items-center justify-between">
         <div>
           <h1 className="font-serif text-3xl font-semibold tracking-tight">
-            How do you want to explore {region?.name}?
+            How do you want to explore{" "}
+            {chosenRegions.length === 1 ? chosenRegions[0].name : `${chosenRegions.length} regions`}?
           </h1>
           <p className="mt-1 text-muted-foreground">
-            Pick one or more styles — these are tailored to this region, not a fixed list.
-            You can mix and match (e.g. popular spots + a few offbeat ones).
+            Pick one or more styles. You can mix and match (e.g. popular spots + a few
+            offbeat ones) — we&apos;ll surface the best cities to base in for each.
           </p>
         </div>
         <Button variant="ghost" onClick={back}>
@@ -110,9 +113,9 @@ export function CategoryStep() {
         <p className="text-sm text-muted-foreground">
           {selectedCategoryIds.length} selected
         </p>
-        <Button size="lg" disabled={selectedCategoryIds.length === 0 || loading} onClick={loadPlaces}>
+        <Button size="lg" disabled={selectedCategoryIds.length === 0 || loading} onClick={loadCities}>
           {loading ? <Loader2 className="size-4 animate-spin" /> : <ArrowRight className="size-4" />}
-          {loading ? "Searching the web…" : "Find top places"}
+          {loading ? "Finding cities…" : "Find cities to visit"}
         </Button>
       </div>
     </div>

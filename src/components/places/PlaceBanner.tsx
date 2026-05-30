@@ -64,7 +64,14 @@ export function PlaceBanner({
       </div>
 
       <div className="flex flex-1 flex-col p-4">
-        <h3 className="font-serif text-lg font-semibold">{place.name}</h3>
+        <div className="flex items-center justify-between gap-2">
+          <h3 className="font-serif text-lg font-semibold">{place.name}</h3>
+          {place.recommendedDays ? (
+            <Badge variant="muted" className="shrink-0">
+              AI: {place.recommendedDays}d
+            </Badge>
+          ) : null}
+        </div>
         <p className="mt-1 line-clamp-3 text-sm text-muted-foreground">{place.description}</p>
 
         {place.highlights.length > 0 && (
