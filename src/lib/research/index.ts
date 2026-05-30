@@ -3,6 +3,7 @@ import { searchWeb } from "./connectors/web";
 import { searchYouTube } from "./connectors/youtube";
 import { searchReddit } from "./connectors/reddit";
 import type { Source } from "@/lib/ai/schemas";
+import { TTLCache, memoizeAsync } from "@/lib/cache";
 
 /**
  * The multi-source research aggregator ("search the entire internet, YouTube, Reddit").
@@ -17,7 +18,16 @@ export interface ResearchDigest {
   usedConnectors: string[]; // which real connectors actually ran
 }
 
-export async function aggregate(query: string): Promise<ResearchDigest> {
+// Cache research digests for 6h, keyed by query. Connectors are the slow network hop;
+// repeated destinations/regions reuse the same digest instead of re-searching.
+const researchCache = new TTLCache<ResearchDigest>(6 * 60 * 60 * 1000, 500);
+const researchInflight = new Map<string, Promise<ResearchDigest>>();
+
+export function aggregate(query: string): Promise<ResearchDigest> {
+  return memoizeAsync(researchCache, researchInflight, query, () => runAggregate(query));
+}
+
+async function runAggregate(query: string): Promise<ResearchDigest> {
   const tasks: Promise<{ notes: string[]; sources: Source[]; connector: string } | null>[] = [];
 
   if (hasWebSearch()) tasks.push(safe("web", () => searchWeb(query)));
