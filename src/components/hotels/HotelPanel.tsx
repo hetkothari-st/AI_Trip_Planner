@@ -1,24 +1,44 @@
 "use client";
 
 import { useState } from "react";
-import { Loader2, Star, Check, ExternalLink, BadgeCheck, ChevronDown } from "lucide-react";
+import { Loader2, Star, Check, ExternalLink, BadgeCheck, ChevronDown, MapPin, Navigation } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Slider } from "@/components/ui/slider";
-import { cn } from "@/lib/utils";
-import { useTrip } from "@/lib/store/trip";
+import { cn, estTravel, formatDuration } from "@/lib/utils";
+import { useTrip, selectedSpotsOf } from "@/lib/store/trip";
 import { formatINR } from "@/lib/cost";
 import type { Hotel } from "@/lib/hotels/types";
 
-export function HotelPanel({ placeId, city, nights }: { placeId: string; city: string; nights: number }) {
-  const { destination, hotels, setHotel } = useTrip();
+export function HotelPanel({
+  placeId,
+  city,
+  nights,
+  cityLat,
+  cityLng,
+}: {
+  placeId: string;
+  city: string;
+  nights: number;
+  cityLat?: number;
+  cityLng?: number;
+}) {
+  const store = useTrip();
+  const { destination, hotels, setHotel } = store;
   const chosen = hotels[placeId];
+
+  // The user's kept spots for this city that have coordinates — for hotel→spot distances.
+  const plan = store.cityPlans[placeId];
+  const spots = plan
+    ? selectedSpotsOf(store, placeId, plan).filter((s) => s.lat != null && s.lng != null)
+    : [];
 
   const [budgetMax, setBudgetMax] = useState(8000);
   const [minStars, setMinStars] = useState(3);
   const [list, setList] = useState<Hotel[] | null>(null);
   const [loading, setLoading] = useState(false);
   const [expanded, setExpanded] = useState<string | null>(null);
+  const [spotsOpen, setSpotsOpen] = useState<string | null>(null);
 
   async function search() {
     setLoading(true);
@@ -26,7 +46,7 @@ export function HotelPanel({ placeId, city, nights }: { placeId: string; city: s
       const res = await fetch("/api/hotels", {
         method: "POST",
         headers: { "content-type": "application/json" },
-        body: JSON.stringify({ destination, city, budgetMax, minStars, nights }),
+        body: JSON.stringify({ destination, city, budgetMax, minStars, nights, cityLat, cityLng }),
       });
       if (res.ok) setList((await res.json()).hotels);
     } finally {
@@ -109,7 +129,9 @@ export function HotelPanel({ placeId, city, nights }: { placeId: string; city: s
                     <span className="ml-1 text-xs text-muted-foreground">{h.rating}/5</span>
                   </div>
                   <h4 className="truncate font-semibold">{h.name}</h4>
-                  <p className="text-xs text-muted-foreground">{h.area}</p>
+                  <p className="flex items-center gap-1 text-xs text-muted-foreground">
+                    <MapPin className="size-3" /> {h.area} · {h.distanceToCenterKm.toFixed(1)} km from centre
+                  </p>
                   <div className="mt-1">
                     <span className="font-serif text-lg font-semibold">{formatINR(h.pricePerNight)}</span>
                     <span className="text-xs text-muted-foreground"> /night · best on {h.bestPriceSite}</span>
@@ -154,6 +176,36 @@ export function HotelPanel({ placeId, city, nights }: { placeId: string; city: s
                     </li>
                   ))}
                 </ul>
+              )}
+
+              {/* travel time + distance from this hotel to each kept spot */}
+              {spots.length > 0 && (
+                <>
+                  <button
+                    onClick={() => setSpotsOpen(spotsOpen === h.id ? null : h.id)}
+                    className="flex items-center justify-between border-t px-3 py-2 text-sm text-primary hover:bg-muted/40"
+                  >
+                    <span className="flex items-center gap-1">
+                      <Navigation className="size-3.5" /> Distance to your {spots.length} spots
+                    </span>
+                    <ChevronDown className={cn("size-4 transition-transform", spotsOpen === h.id && "rotate-180")} />
+                  </button>
+                  {spotsOpen === h.id && (
+                    <ul className="space-y-1 px-3 pb-2 text-sm">
+                      {spots
+                        .map((s) => ({ s, t: estTravel(h, { lat: s.lat!, lng: s.lng! }) }))
+                        .sort((a, b) => a.t.distanceKm - b.t.distanceKm)
+                        .map(({ s, t }) => (
+                          <li key={s.name} className="flex items-center justify-between gap-2">
+                            <span className="truncate">{s.name}</span>
+                            <span className="shrink-0 text-muted-foreground">
+                              {t.distanceKm.toFixed(1)} km · {formatDuration(t.durationSec)}
+                            </span>
+                          </li>
+                        ))}
+                    </ul>
+                  )}
+                </>
               )}
 
               <div className="mt-auto p-3 pt-1">

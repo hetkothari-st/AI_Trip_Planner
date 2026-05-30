@@ -333,7 +333,13 @@ const ACTIVITY_TEMPLATES: { name: string; durationMin: number; price: number }[]
 
 const PROVIDERS = ["Himalayan Adventures Co.", "Local Trails (govt-certified)", "Peak Experiences", "Valley Outdoors"];
 
-export function mockActivities(destination: string, city: string): Activity[] {
+export function mockActivities(
+  destination: string,
+  city: string,
+  cityLat?: number,
+  cityLng?: number,
+): Activity[] {
+  const center = { lat: cityLat ?? 30.0, lng: cityLng ?? 79.0 };
   return [...ACTIVITY_TEMPLATES]
     .map((t, i) => ({ t, r: seededRandom(`${city}-act-${t.name}-${i}`) }))
     .sort((a, b) => a.r - b.r)
@@ -346,5 +352,8 @@ export function mockActivities(destination: string, city: string): Activity[] {
       durationMin: t.durationMin,
       price: t.price,
       rating: Math.round((4 + seededRandom(`${city}-actr-${i}`)) * 10) / 10,
+      // scatter within ~5 km of the centre so each pairs with a nearby spot
+      lat: center.lat + (seededRandom(`${city}-actlat-${i}`) - 0.5) * 0.09,
+      lng: center.lng + (seededRandom(`${city}-actlng-${i}`) - 0.5) * 0.09,
     }));
 }

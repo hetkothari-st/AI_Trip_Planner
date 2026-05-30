@@ -10,6 +10,8 @@ const Body = z.object({
   budgetMax: z.number().int().min(500).max(100000),
   minStars: z.number().int().min(1).max(5),
   nights: z.number().int().min(1).max(60),
+  cityLat: z.number().optional(),
+  cityLng: z.number().optional(),
 });
 
 export async function POST(req: Request) {

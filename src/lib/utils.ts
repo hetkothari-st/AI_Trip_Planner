@@ -33,6 +33,19 @@ export function haversineKm(
   return 2 * R * Math.asin(Math.sqrt(h));
 }
 
+/**
+ * Quick straight-line travel estimate between two points: road distance (haversine ×1.3
+ * for winding roads) and driving time at a ~30 km/h in-town average. Cheap and offline —
+ * used for the hotel→spot / activity→spot proximity hints (OSRM is reserved for the maps).
+ */
+export function estTravel(
+  a: { lat: number; lng: number },
+  b: { lat: number; lng: number },
+): { distanceKm: number; durationSec: number } {
+  const distanceKm = haversineKm(a, b) * 1.3;
+  return { distanceKm, durationSec: (distanceKm / 30) * 3600 };
+}
+
 /** Format a duration given in seconds as "Xh Ym". */
 export function formatDuration(seconds: number): string {
   const h = Math.floor(seconds / 3600);

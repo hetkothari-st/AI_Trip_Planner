@@ -1,10 +1,10 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { Loader2, Star, Check, Clock, ShieldCheck } from "lucide-react";
+import { Loader2, Star, Check, Clock, ShieldCheck, MapPin } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { cn } from "@/lib/utils";
-import { useTrip } from "@/lib/store/trip";
+import { cn, estTravel } from "@/lib/utils";
+import { useTrip, selectedSpotsOf } from "@/lib/store/trip";
 import { formatINR } from "@/lib/cost";
 import type { Activity } from "@/lib/ai/schemas";
 
@@ -14,11 +14,39 @@ function fmtMin(min: number) {
   return h === 0 ? `${m}m` : m === 0 ? `${h}h` : `${h}h ${m}m`;
 }
 
-export function ActivitiesPanel({ placeId, city }: { placeId: string; city: string }) {
-  const { destination, activities, toggleActivity } = useTrip();
+export function ActivitiesPanel({
+  placeId,
+  city,
+  cityLat,
+  cityLng,
+}: {
+  placeId: string;
+  city: string;
+  cityLat?: number;
+  cityLng?: number;
+}) {
+  const store = useTrip();
+  const { destination, activities, toggleActivity } = store;
   const chosen = activities[placeId] ?? [];
   const [list, setList] = useState<Activity[] | null>(null);
   const [loading, setLoading] = useState(false);
+
+  // Kept spots (with coords) to pair each activity with the nearest one.
+  const plan = store.cityPlans[placeId];
+  const spots = plan
+    ? selectedSpotsOf(store, placeId, plan).filter((s) => s.lat != null && s.lng != null)
+    : [];
+
+  // The nearest kept spot to an activity, with the hop distance/time.
+  const nearestSpot = (a: Activity) => {
+    if (a.lat == null || a.lng == null || spots.length === 0) return null;
+    let best: { name: string; km: number } | null = null;
+    for (const s of spots) {
+      const { distanceKm } = estTravel({ lat: a.lat, lng: a.lng }, { lat: s.lat!, lng: s.lng! });
+      if (!best || distanceKm < best.km) best = { name: s.name, km: distanceKm };
+    }
+    return best;
+  };
 
   useEffect(() => {
     let active = true;
@@ -26,7 +54,7 @@ export function ActivitiesPanel({ placeId, city }: { placeId: string; city: stri
     fetch("/api/activities", {
       method: "POST",
       headers: { "content-type": "application/json" },
-      body: JSON.stringify({ destination, city }),
+      body: JSON.stringify({ destination, city, cityLat, cityLng }),
     })
       .then((r) => r.json())
       .then((d) => active && setList(d.activities))
@@ -72,6 +100,14 @@ export function ActivitiesPanel({ placeId, city }: { placeId: string; city: stri
                 <Star className="size-3.5 fill-amber-400 text-amber-400" /> {a.rating}
               </span>
             </div>
+            {(() => {
+              const near = nearestSpot(a);
+              return near ? (
+                <p className="mt-2 flex items-center gap-1 text-xs text-primary">
+                  <MapPin className="size-3.5" /> Near {near.name} · {near.km.toFixed(1)} km
+                </p>
+              ) : null;
+            })()}
             <Button
               variant={isChosen ? "secondary" : "outline"}
               size="sm"

@@ -4,7 +4,8 @@ import type { Hotel } from "@/lib/hotels/types";
 
 const hotel = (price: number): Hotel => ({
   id: "h", name: "Test Inn", stars: 4, rating: 4.2, pricePerNight: price, currency: "INR",
-  imageUrl: "", amenities: [], area: "", prices: [], bestPriceSite: "MakeMyTrip",
+  imageUrl: "", amenities: [], area: "", lat: 30, lng: 79, distanceToCenterKm: 1,
+  prices: [], bestPriceSite: "MakeMyTrip",
 });
 
 describe("computeCost", () => {

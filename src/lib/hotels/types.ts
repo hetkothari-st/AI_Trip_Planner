@@ -15,6 +15,9 @@ export interface Hotel {
   imageUrl: string;
   amenities: string[];
   area: string;
+  lat: number;
+  lng: number;
+  distanceToCenterKm: number; // straight-line distance from the city centre
   // price across the top Indian booking sites, cheapest first
   prices: SitePrice[];
   bestPriceSite: string;
@@ -26,4 +29,6 @@ export interface HotelSearchParams {
   budgetMax: number; // per night ceiling, INR
   minStars: number;
   nights: number;
+  cityLat?: number; // city centre, to place hotels + measure distances
+  cityLng?: number;
 }

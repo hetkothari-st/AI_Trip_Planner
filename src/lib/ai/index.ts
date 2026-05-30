@@ -352,6 +352,8 @@ const activitiesJsonSchema = {
 export async function recommendActivities(
   destination: string,
   city: string,
+  cityLat?: number,
+  cityLng?: number,
 ): Promise<Activity[]> {
   const res = await getLLM().generate({
     system: SYSTEM,
@@ -360,7 +362,7 @@ For each give a reputable, reliable operator/provider, a realistic duration (min
 a per-person price in INR, and a rating out of 5.`,
     schema: ActivitiesResponseSchema,
     jsonSchema: activitiesJsonSchema,
-    mock: () => ({ activities: mockActivities(destination, city) }),
+    mock: () => ({ activities: mockActivities(destination, city, cityLat, cityLng) }),
   });
   return res.activities;
 }

@@ -264,8 +264,12 @@ export function CitiesStep() {
                     </>
                   )}
 
-                  {tab === "hotels" && <HotelPanel placeId={p.id} city={p.name} nights={p.days} />}
-                  {tab === "activities" && <ActivitiesPanel placeId={p.id} city={p.name} />}
+                  {tab === "hotels" && (
+                    <HotelPanel placeId={p.id} city={p.name} nights={p.days} cityLat={p.lat} cityLng={p.lng} />
+                  )}
+                  {tab === "activities" && (
+                    <ActivitiesPanel placeId={p.id} city={p.name} cityLat={p.lat} cityLng={p.lng} />
+                  )}
                 </div>
 
                 {/* selection footer */}
