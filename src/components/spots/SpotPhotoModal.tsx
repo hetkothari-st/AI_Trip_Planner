@@ -1,8 +1,13 @@
 "use client";
 
-import { useEffect, useState } from "react";
-import { Loader2, X, Clock, ImageOff } from "lucide-react";
+import { useEffect, useRef, useState } from "react";
+import { Loader2, X, Clock, ImageOff, ZoomIn, ZoomOut, RotateCcw } from "lucide-react";
 import type { CitySpot } from "@/lib/ai/schemas";
+
+const MIN_ZOOM = 1;
+const MAX_ZOOM = 4;
+const ZOOM_STEP = 0.25;
+const clampZoom = (z: number) => Math.min(MAX_ZOOM, Math.max(MIN_ZOOM, z));
 
 interface Photo {
   url: string;
@@ -34,6 +39,21 @@ export function SpotPhotoModal({
   const [photos, setPhotos] = useState<Photo[] | null>(null);
   const [active, setActive] = useState(0);
   const [loading, setLoading] = useState(true);
+
+  // Zoom + pan for the hero photo.
+  const [zoom, setZoom] = useState(1);
+  const [offset, setOffset] = useState({ x: 0, y: 0 });
+  const drag = useRef<{ x: number; y: number; ox: number; oy: number } | null>(null);
+
+  const resetView = () => {
+    setZoom(1);
+    setOffset({ x: 0, y: 0 });
+  };
+  // Reset the view whenever a different photo becomes active.
+  useEffect(() => {
+    setZoom(1);
+    setOffset({ x: 0, y: 0 });
+  }, [active]);
 
   useEffect(() => {
     let on = true;
@@ -90,12 +110,70 @@ export function SpotPhotoModal({
         {/* body */}
         <div className="flex min-h-0 flex-1 flex-col">
           {/* hero image */}
-          <div className="relative flex h-[38vh] shrink-0 items-center justify-center border-b-[3px] border-primary bg-surface-container">
+          <div
+            className="relative flex h-[38vh] shrink-0 items-center justify-center overflow-hidden border-b-[3px] border-primary bg-surface-container"
+            onWheel={(e) => {
+              if (!hero) return;
+              setZoom((z) => clampZoom(z + (e.deltaY < 0 ? ZOOM_STEP : -ZOOM_STEP)));
+            }}
+            onMouseDown={(e) => {
+              if (zoom <= 1) return;
+              drag.current = { x: e.clientX, y: e.clientY, ox: offset.x, oy: offset.y };
+            }}
+            onMouseMove={(e) => {
+              if (!drag.current) return;
+              setOffset({
+                x: drag.current.ox + (e.clientX - drag.current.x),
+                y: drag.current.oy + (e.clientY - drag.current.y),
+              });
+            }}
+            onMouseUp={() => (drag.current = null)}
+            onMouseLeave={() => (drag.current = null)}
+            style={{ cursor: zoom > 1 ? (drag.current ? "grabbing" : "grab") : "default" }}
+          >
             {loading ? (
               <Loader2 className="size-8 animate-spin text-on-surface-variant" />
             ) : hero ? (
-              // eslint-disable-next-line @next/next/no-img-element
-              <img src={hero.url} alt={spot.name} className="h-full w-full object-cover" />
+              <>
+                {/* eslint-disable-next-line @next/next/no-img-element */}
+                <img
+                  src={hero.url}
+                  alt={spot.name}
+                  draggable={false}
+                  className="h-full w-full select-none object-contain transition-transform duration-100"
+                  style={{ transform: `translate(${offset.x}px, ${offset.y}px) scale(${zoom})` }}
+                />
+                {/* zoom controls */}
+                <div className="absolute bottom-3 right-3 flex items-center gap-1.5">
+                  <button
+                    onClick={() => setZoom((z) => clampZoom(z - ZOOM_STEP))}
+                    disabled={zoom <= MIN_ZOOM}
+                    aria-label="Zoom out"
+                    className="flex size-8 items-center justify-center border-2 border-primary bg-surface text-primary transition-colors hover:bg-primary-container disabled:opacity-40"
+                  >
+                    <ZoomOut className="size-4" strokeWidth={2.5} />
+                  </button>
+                  <span className="min-w-[3rem] border-2 border-primary bg-surface px-2 py-1 text-center text-[11px] font-bold tabular-nums text-primary">
+                    {Math.round(zoom * 100)}%
+                  </span>
+                  <button
+                    onClick={() => setZoom((z) => clampZoom(z + ZOOM_STEP))}
+                    disabled={zoom >= MAX_ZOOM}
+                    aria-label="Zoom in"
+                    className="flex size-8 items-center justify-center border-2 border-primary bg-surface text-primary transition-colors hover:bg-primary-container disabled:opacity-40"
+                  >
+                    <ZoomIn className="size-4" strokeWidth={2.5} />
+                  </button>
+                  <button
+                    onClick={resetView}
+                    disabled={zoom === 1 && offset.x === 0 && offset.y === 0}
+                    aria-label="Reset zoom"
+                    className="flex size-8 items-center justify-center border-2 border-primary bg-surface text-primary transition-colors hover:bg-primary-container disabled:opacity-40"
+                  >
+                    <RotateCcw className="size-4" strokeWidth={2.5} />
+                  </button>
+                </div>
+              </>
             ) : (
               <span className="flex flex-col items-center gap-2 text-sm font-bold uppercase tracking-wide text-on-surface-variant">
                 <ImageOff className="size-8" /> No photos found
