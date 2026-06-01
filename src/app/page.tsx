@@ -1,9 +1,9 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
-import { Brain, Map as MapIcon, BarChart3, ArrowRight, Loader2 } from "lucide-react";
+import { Brain, Map as MapIcon, BarChart3, ArrowRight, Loader2, MapPin } from "lucide-react";
 import { TopNav } from "@/components/chrome/TopNav";
 import { useTrip } from "@/lib/store/trip";
 
@@ -35,12 +35,62 @@ export default function Home() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  async function analyze() {
-    const dest = value.trim();
+  // Live destination autocomplete.
+  const [suggestions, setSuggestions] = useState<{ name: string; label: string }[]>([]);
+  const [showSug, setShowSug] = useState(false);
+  // Skip the next debounce fetch after a programmatic value change (suggestion pick).
+  const skipFetch = useRef(false);
+
+  useEffect(() => {
+    if (skipFetch.current) {
+      skipFetch.current = false;
+      return;
+    }
+    const q = value.trim();
+    if (q.length < 2) {
+      setSuggestions([]);
+      setShowSug(false);
+      return;
+    }
+    const ctrl = new AbortController();
+    const t = setTimeout(async () => {
+      try {
+        const res = await fetch("/api/place-suggest", {
+          method: "POST",
+          headers: { "content-type": "application/json" },
+          body: JSON.stringify({ q }),
+          signal: ctrl.signal,
+        });
+        if (!res.ok) return;
+        const data = await res.json();
+        const list = (data.suggestions ?? []) as { name: string; label: string }[];
+        setSuggestions(list);
+        setShowSug(list.length > 0);
+      } catch {
+        /* aborted or network error — ignore */
+      }
+    }, 250);
+    return () => {
+      clearTimeout(t);
+      ctrl.abort();
+    };
+  }, [value]);
+
+  function pick(name: string) {
+    skipFetch.current = true;
+    setValue(name);
+    setShowSug(false);
+    setSuggestions([]);
+    analyze(name);
+  }
+
+  async function analyze(override?: string) {
+    const dest = (override ?? value).trim();
     if (dest.length < 2) {
       setError("Enter a destination to analyze.");
       return;
     }
+    setShowSug(false);
     setLoading(true);
     setError(null);
     setDestination(dest);
@@ -66,54 +116,87 @@ export default function Home() {
       <TopNav />
 
       {/* Hero */}
-      <main className="relative min-h-screen overflow-hidden px-6 pt-24 md:px-8">
+      <main className="relative min-h-screen overflow-hidden px-6 pt-20 md:px-8">
         {/* Bauhaus geometric background motifs */}
         <div className="absolute left-[-5rem] top-1/4 -z-10 size-64 rotate-12 border-4 border-primary bg-primary-container" />
         <div className="absolute bottom-1/4 right-[-4rem] -z-10 size-80 rounded-full border-4 border-primary bg-secondary" />
 
         <div className="mx-auto flex max-w-7xl flex-col items-center text-center">
-          <div className="mt-6 space-y-4">
-            <span className="inline-block border-2 border-primary bg-tertiary px-3 py-1 text-[0.65rem] font-bold uppercase tracking-widest text-white neo-shadow">
+          <div className="mt-4 space-y-3">
+            <span className="inline-block border-2 border-primary bg-tertiary px-2.5 py-0.5 text-[0.55rem] font-bold uppercase tracking-widest text-white neo-shadow">
               AI Optimization Active
             </span>
-            <h1 className="text-5xl font-extrabold uppercase leading-[0.85] tracking-tighter text-primary md:text-[6.5rem]">
-              Precision
+            <h1 className="text-4xl font-extrabold uppercase leading-[0.85] tracking-tighter text-primary md:text-[4.5rem]">
+              Search Your
               <br />
-              Exploration
+              Destination
             </h1>
           </div>
 
           {/* Massive search bar */}
-          <div className="relative mt-10 w-full max-w-3xl">
+          <div className="relative mt-8 w-full max-w-2xl">
             <div className="group relative">
-              <div className="absolute -inset-2 -z-10 bg-primary transition-colors duration-300 group-focus-within:bg-tertiary" />
-              <div className="flex flex-col items-center gap-4 border-4 border-primary bg-surface p-4 md:flex-row md:p-7">
+              <div className="absolute -inset-1.5 -z-10 bg-primary transition-colors duration-300 group-focus-within:bg-tertiary" />
+              <div className="flex flex-col items-center gap-3 border-4 border-primary bg-surface p-3 md:flex-row md:p-5">
                 <div className="w-full flex-1 text-left">
-                  <label className="mb-2 block text-[0.6rem] font-bold uppercase tracking-widest text-on-surface-variant">
+                  <label className="mb-1.5 block text-[0.55rem] font-bold uppercase tracking-widest text-on-surface-variant">
                     Where to?
                   </label>
                   <input
                     autoFocus
                     value={value}
                     onChange={(e) => setValue(e.target.value)}
-                    onKeyDown={(e) => e.key === "Enter" && analyze()}
+                    onFocus={() => suggestions.length > 0 && setShowSug(true)}
+                    onKeyDown={(e) => {
+                      if (e.key === "Enter") analyze();
+                      if (e.key === "Escape") setShowSug(false);
+                    }}
                     placeholder="UTTARAKHAND"
-                    className="w-full border-b-4 border-primary bg-transparent py-1.5 text-2xl font-bold uppercase outline-none transition-colors placeholder:text-surface-dim focus:border-tertiary md:text-4xl"
+                    autoComplete="off"
+                    className="w-full border-b-4 border-primary bg-transparent py-1 text-xl font-bold uppercase outline-none transition-colors placeholder:text-surface-dim focus:border-tertiary md:text-3xl"
                   />
                 </div>
                 <button
-                  onClick={analyze}
+                  onClick={() => analyze()}
                   disabled={loading}
-                  className="flex w-full items-center justify-center gap-3 border-4 border-primary bg-primary-container px-8 py-4 text-xl font-bold uppercase text-primary neo-shadow-hover disabled:opacity-70 md:w-auto"
+                  className="flex w-full items-center justify-center gap-2 border-4 border-primary bg-primary-container px-6 py-3 text-base font-bold uppercase text-primary neo-shadow-hover disabled:opacity-70 md:w-auto"
                 >
                   {loading ? "Analyzing" : "Analyze"}
                   {loading ? (
-                    <Loader2 className="size-6 animate-spin" />
+                    <Loader2 className="size-5 animate-spin" />
                   ) : (
-                    <ArrowRight className="size-6" strokeWidth={3} />
+                    <ArrowRight className="size-5" strokeWidth={3} />
                   )}
                 </button>
               </div>
+
+              {/* live autocomplete dropdown */}
+              {showSug && suggestions.length > 0 && (
+                <ul className="absolute left-0 right-0 top-full z-30 mt-2 max-h-80 overflow-auto border-4 border-primary bg-surface neo-shadow">
+                  {suggestions.map((s) => (
+                    <li key={s.label}>
+                      <button
+                        type="button"
+                        onMouseDown={(e) => {
+                          e.preventDefault();
+                          pick(s.name);
+                        }}
+                        className="flex w-full items-start gap-3 border-b-2 border-primary/15 px-4 py-3 text-left transition-colors last:border-b-0 hover:bg-primary-container"
+                      >
+                        <MapPin className="mt-0.5 size-4 shrink-0 text-tertiary" strokeWidth={2.5} />
+                        <span className="min-w-0">
+                          <span className="block text-sm font-bold uppercase tracking-tight text-primary">
+                            {s.name}
+                          </span>
+                          <span className="block truncate text-[11px] font-medium uppercase tracking-wide text-on-surface-variant">
+                            {s.label}
+                          </span>
+                        </span>
+                      </button>
+                    </li>
+                  ))}
+                </ul>
+              )}
             </div>
             {error && (
               <p className="mt-4 text-left text-sm font-bold uppercase tracking-wide text-secondary">
@@ -123,12 +206,12 @@ export default function Home() {
           </div>
 
           {/* Feature grid */}
-          <div className="mb-24 mt-16 grid w-full max-w-3xl grid-cols-1 gap-6 md:grid-cols-3">
+          <div className="mb-20 mt-12 grid w-full max-w-2xl grid-cols-1 gap-5 md:grid-cols-3">
             {FEATURES.map((f) => (
               <div
                 key={f.title}
                 className={
-                  "group cursor-default border-4 border-primary p-6 text-left transition-colors " +
+                  "group cursor-default border-4 border-primary p-5 text-left transition-colors " +
                   (f.tone === "yellow"
                     ? "bg-primary-container hover:bg-primary hover:text-white"
                     : f.tone === "red"
@@ -136,9 +219,9 @@ export default function Home() {
                       : "bg-surface hover:bg-tertiary hover:text-white")
                 }
               >
-                <f.icon className="mb-3 size-7" strokeWidth={2.5} />
-                <h3 className="mb-2 text-xl font-bold uppercase">{f.title}</h3>
-                <p className="text-sm font-medium uppercase leading-relaxed tracking-tight opacity-80">
+                <f.icon className="mb-2 size-6" strokeWidth={2.5} />
+                <h3 className="mb-1.5 text-lg font-bold uppercase">{f.title}</h3>
+                <p className="text-xs font-medium uppercase leading-relaxed tracking-tight opacity-80">
                   {f.body}
                 </p>
               </div>
@@ -151,7 +234,7 @@ export default function Home() {
       <section className="w-full px-6 pb-32 md:px-8">
         <div className="mx-auto max-w-7xl">
           <div className="grid grid-cols-12 gap-4">
-            <div className="group relative col-span-12 h-[420px] overflow-hidden border-4 border-primary md:col-span-8 md:h-[600px]">
+            <div className="group relative col-span-12 h-[300px] overflow-hidden border-4 border-primary md:col-span-8 md:h-[440px]">
               {/* eslint-disable-next-line @next/next/no-img-element */}
               <img
                 src="https://picsum.photos/seed/aether-himalaya/1200/900"
