@@ -3,7 +3,17 @@
 import { useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
-import { Brain, Map as MapIcon, BarChart3, ArrowRight, Loader2, MapPin } from "lucide-react";
+import {
+  Brain,
+  Map as MapIcon,
+  BarChart3,
+  ArrowRight,
+  Loader2,
+  MapPin,
+  ChevronLeft,
+  ChevronRight,
+} from "lucide-react";
+import { cn } from "@/lib/utils";
 import { TopNav } from "@/components/chrome/TopNav";
 import { useTrip } from "@/lib/store/trip";
 
@@ -28,6 +38,14 @@ const FEATURES = [
   },
 ] as const;
 
+const DESTINATIONS = [
+  { name: "Uttarakhand", blurb: "Himalayan peaks, valleys & spiritual towns", seed: "uttarakhand-himalaya" },
+  { name: "Kerala", blurb: "Backwaters, beaches & misty tea hills", seed: "kerala-backwater" },
+  { name: "Rajasthan", blurb: "Desert forts, palaces & vivid bazaars", seed: "rajasthan-fort" },
+  { name: "Himachal Pradesh", blurb: "Snow trails, pine valleys & hill towns", seed: "himachal-snow" },
+  { name: "Goa", blurb: "Coastline, nightlife & Portuguese heritage", seed: "goa-coast" },
+] as const;
+
 export default function Home() {
   const router = useRouter();
   const { setDestination, setRegions, goTo } = useTrip();
@@ -40,6 +58,13 @@ export default function Home() {
   const [showSug, setShowSug] = useState(false);
   // Skip the next debounce fetch after a programmatic value change (suggestion pick).
   const skipFetch = useRef(false);
+
+  // Featured-destinations carousel.
+  const [slide, setSlide] = useState(0);
+  useEffect(() => {
+    const id = setInterval(() => setSlide((s) => (s + 1) % DESTINATIONS.length), 4500);
+    return () => clearInterval(id);
+  }, []);
 
   useEffect(() => {
     if (skipFetch.current) {
@@ -230,42 +255,88 @@ export default function Home() {
         </div>
       </main>
 
-      {/* Visual showcase */}
-      <section className="w-full px-6 pb-32 md:px-8">
+      {/* Featured destinations — auto-sliding, each slide starts planning */}
+      <section className="w-full px-6 pb-28 md:px-8">
         <div className="mx-auto max-w-7xl">
-          <div className="grid grid-cols-12 gap-4">
-            <div className="group relative col-span-12 h-[300px] overflow-hidden border-4 border-primary md:col-span-8 md:h-[440px]">
-              {/* eslint-disable-next-line @next/next/no-img-element */}
-              <img
-                src="https://picsum.photos/seed/aether-himalaya/1200/900"
-                alt="Mountain landscape"
-                className="size-full object-cover grayscale transition-all duration-700 group-hover:grayscale-0"
-              />
-              <div className="absolute bottom-8 left-8 bg-primary p-6 text-white neo-shadow">
-                <p className="text-3xl font-black uppercase leading-tight tracking-tighter md:text-4xl">
-                  Uttarakhand
-                  <br />
-                  Exploration 01
-                </p>
-              </div>
-            </div>
-            <div className="col-span-12 grid grid-rows-2 gap-4 md:col-span-4">
-              <div className="flex flex-col justify-end border-4 border-primary bg-tertiary p-8">
-                <h4 className="text-3xl font-bold uppercase tracking-tighter text-white">
-                  North Star
-                  <br />
-                  Guidance
-                </h4>
-              </div>
-              <div className="group relative overflow-hidden border-4 border-primary">
+          <div className="mb-6 flex items-end justify-between border-b-4 border-primary pb-4">
+            <h2 className="text-2xl font-extrabold uppercase tracking-tighter text-primary md:text-4xl">
+              Featured Destinations
+            </h2>
+            <span className="hidden text-xs font-bold uppercase tracking-widest text-on-surface-variant md:block">
+              Tap a slide to start planning
+            </span>
+          </div>
+
+          {/* slider */}
+          <div className="group relative h-[320px] overflow-hidden border-4 border-primary neo-shadow md:h-[480px]">
+            {DESTINATIONS.map((d, i) => (
+              <button
+                key={d.name}
+                type="button"
+                onClick={() => analyze(d.name)}
+                aria-label={`Plan a trip to ${d.name}`}
+                className={cn(
+                  "absolute inset-0 transition-opacity duration-700",
+                  i === slide ? "opacity-100" : "pointer-events-none opacity-0",
+                )}
+              >
                 {/* eslint-disable-next-line @next/next/no-img-element */}
                 <img
-                  src="https://picsum.photos/seed/aether-stone/600/400"
-                  alt="Stone architecture"
+                  src={`https://picsum.photos/seed/${d.seed}/1400/900`}
+                  alt={d.name}
                   className="size-full object-cover grayscale transition-all duration-700 group-hover:grayscale-0"
                 />
-              </div>
-            </div>
+                <div className="absolute bottom-6 left-6 max-w-md border-4 border-primary bg-primary p-5 text-left text-white neo-shadow md:bottom-8 md:left-8 md:p-6">
+                  <span className="text-[0.6rem] font-bold uppercase tracking-widest text-primary-container">
+                    Exploration {String(i + 1).padStart(2, "0")}
+                  </span>
+                  <p className="text-2xl font-black uppercase leading-[0.9] tracking-tighter md:text-4xl">
+                    {d.name}
+                  </p>
+                  <p className="mt-2 text-[11px] font-medium uppercase tracking-wide opacity-80 md:text-xs">
+                    {d.blurb}
+                  </p>
+                  <span className="mt-3 inline-flex items-center gap-2 text-xs font-bold uppercase tracking-widest text-primary-container">
+                    Plan This Trip <ArrowRight className="size-4" strokeWidth={3} />
+                  </span>
+                </div>
+              </button>
+            ))}
+
+            {/* prev / next */}
+            <button
+              type="button"
+              onClick={() => setSlide((s) => (s - 1 + DESTINATIONS.length) % DESTINATIONS.length)}
+              aria-label="Previous destination"
+              className="absolute left-3 top-1/2 z-10 -translate-y-1/2 border-2 border-primary bg-surface p-2 transition-colors hover:bg-primary-container"
+            >
+              <ChevronLeft className="size-5" strokeWidth={3} />
+            </button>
+            <button
+              type="button"
+              onClick={() => setSlide((s) => (s + 1) % DESTINATIONS.length)}
+              aria-label="Next destination"
+              className="absolute right-3 top-1/2 z-10 -translate-y-1/2 border-2 border-primary bg-surface p-2 transition-colors hover:bg-primary-container"
+            >
+              <ChevronRight className="size-5" strokeWidth={3} />
+            </button>
+          </div>
+
+          {/* quick-pick chips double as slide nav */}
+          <div className="mt-5 flex flex-wrap items-center justify-center gap-2">
+            {DESTINATIONS.map((d, i) => (
+              <button
+                key={d.name}
+                type="button"
+                onClick={() => setSlide(i)}
+                className={cn(
+                  "border-2 border-primary px-4 py-2 text-xs font-bold uppercase tracking-widest transition-colors",
+                  i === slide ? "bg-primary text-white" : "bg-surface hover:bg-primary-container",
+                )}
+              >
+                {d.name}
+              </button>
+            ))}
           </div>
         </div>
       </section>
