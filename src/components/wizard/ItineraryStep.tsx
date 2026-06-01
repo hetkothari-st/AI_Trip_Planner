@@ -1,12 +1,11 @@
 "use client";
 
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import {
   ArrowLeft,
   FileDown,
   FileSpreadsheet,
-  MapPin,
   BedDouble,
   Mountain,
   Utensils,
@@ -14,6 +13,10 @@ import {
   Save,
   Check,
   Navigation,
+  Car,
+  Clock,
+  Sun,
+  AlertTriangle,
 } from "lucide-react";
 import { MapPanel } from "@/components/map/MapPanel";
 import { CityMiniMap } from "@/components/map/CityMiniMap";
@@ -23,6 +26,7 @@ import { useTravels } from "@/lib/store/travels";
 import { computeCost, formatINR } from "@/lib/cost";
 import { downloadExcel, downloadPdf, type Sheet } from "@/lib/export";
 import { formatDuration } from "@/lib/utils";
+import { scheduleTrip, fmtClock, type ScheduleCity, type DaySchedule } from "@/lib/schedule";
 import { CostSummary } from "@/components/cost/CostSummary";
 
 function fmtMin(min: number) {
@@ -31,17 +35,43 @@ function fmtMin(min: number) {
   return h === 0 ? `${m} min` : m === 0 ? `${h}h` : `${h}h ${m}m`;
 }
 
+const START_OPTIONS = [
+  { label: "7:00 AM", min: 7 * 60 },
+  { label: "7:30 AM", min: 7 * 60 + 30 },
+  { label: "8:00 AM", min: 8 * 60 },
+  { label: "8:30 AM", min: 8 * 60 + 30 },
+  { label: "9:00 AM", min: 9 * 60 },
+  { label: "9:30 AM", min: 9 * 60 + 30 },
+  { label: "10:00 AM", min: 10 * 60 },
+];
+
+const END_OPTIONS = [
+  { label: "5:00 PM", min: 17 * 60 },
+  { label: "6:00 PM", min: 18 * 60 },
+  { label: "7:00 PM", min: 19 * 60 },
+  { label: "8:00 PM", min: 20 * 60 },
+  { label: "9:00 PM", min: 21 * 60 },
+];
+
 export function ItineraryStep() {
   const store = useTrip();
-  const { destination, region, cityPlans, hotels, activities, route, back } = store;
+  const {
+    destination,
+    region,
+    cityPlans,
+    hotels,
+    activities,
+    route,
+    back,
+    itinStartMin,
+    itinEndMin,
+    itinLunch,
+    setItinStartMin,
+    setItinEndMin,
+    setItinLunch,
+  } = store;
   const places = selectedList(store);
   const totalDays = places.reduce((n, p) => n + p.days, 0);
-  // Continuous day numbering across the whole trip: city i starts the day after city i-1 ends.
-  const startDays: number[] = [];
-  places.reduce((acc, p) => {
-    startDays.push(acc);
-    return acc + p.days;
-  }, 0);
   const cost = computeCost({
     places: places.map((p) => ({ id: p.id, name: p.name, days: p.days })),
     hotels,
@@ -52,6 +82,44 @@ export function ItineraryStep() {
     const plan = cityPlans[p.id];
     return n + (plan ? selectedSpotsOf(store, p.id, plan).length : 0);
   }, 0);
+
+  // Build the timed day-by-day schedule. Recomputed when selections or the
+  // start-time / lunch preferences change.
+  const schedule = useMemo(() => {
+    const cities: ScheduleCity[] = places.map((p, idx) => {
+      const plan = cityPlans[p.id];
+      const hotel = hotels[p.id];
+      const spots = plan ? selectedSpotsOf(store, p.id, plan) : [];
+      const leg = idx > 0 ? route?.legs[idx - 1] : undefined;
+      return {
+        name: p.name,
+        days: p.days,
+        hotel: hotel && hotel.lat != null && hotel.lng != null ? { lat: hotel.lat, lng: hotel.lng } : undefined,
+        spots: spots.map((s) => ({
+          name: s.name,
+          description: s.description,
+          category: s.category,
+          durationMin: s.durationMin,
+          lat: s.lat,
+          lng: s.lng,
+        })),
+        driveFromPrev: leg ? { distanceKm: leg.distanceKm, durationSec: leg.durationSec } : undefined,
+      };
+    });
+    return scheduleTrip(cities, { dayStartMin: itinStartMin, dayEndMin: itinEndMin, lunch: itinLunch });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [places, cityPlans, hotels, activities, route, itinStartMin, itinEndMin, itinLunch]);
+
+  // Day schedules grouped by city index for rendering inside each city card.
+  const daysByCity = useMemo(() => {
+    const map = new Map<number, DaySchedule[]>();
+    schedule.forEach((d) => {
+      const arr = map.get(d.cityIndex) ?? [];
+      arr.push(d);
+      map.set(d.cityIndex, arr);
+    });
+    return map;
+  }, [schedule]);
 
   const router = useRouter();
   const { addManyVisited } = useTravels();
@@ -88,17 +156,18 @@ export function ItineraryStep() {
   }
 
   function exportExcel() {
-    const itinRows: (string | number)[][] = [];
-    places.forEach((p, idx) => {
-      const plan = cityPlans[p.id];
-      if (!plan) return;
-      const spots = selectedSpotsOf(store, p.id, plan);
-      const perDay = Math.max(1, Math.ceil(spots.length / p.days));
-      spots.forEach((s, i) => {
-        const day = startDays[idx] + Math.floor(i / perDay) + 1;
-        itinRows.push([p.name, day, s.name, fmtMin(s.durationMin), s.category]);
-      });
-    });
+    // Timed itinerary rows straight from the schedule.
+    const itinRows: (string | number)[][] = schedule.flatMap((d) =>
+      d.entries.map((e) => [
+        `Day ${d.dayNumber}`,
+        d.cityName,
+        `${fmtClock(e.startMin)} – ${fmtClock(e.endMin)}`,
+        e.kind === "spot" ? e.title : e.kind === "drive" ? `🚗 ${e.title}` : `🍽 ${e.title}`,
+        e.kind === "spot" ? `${e.category ?? ""}${e.overflow ? " (late)" : ""}` : e.kind,
+        e.travelKm ? `${e.travelKm.toFixed(1)} km` : "",
+        fmtMin(e.endMin - e.startMin),
+      ]),
+    );
     const hotelRows = places
       .filter((p) => hotels[p.id])
       .map((p) => {
@@ -115,13 +184,20 @@ export function ItineraryStep() {
         rows: [
           ["Destination", destination],
           ["Region", region?.name ?? ""],
+          ["Route", places.map((p) => p.name).join(" → ")],
           ["Cities", places.length],
           ["Total days", totalDays],
+          ["Daily start", fmtClock(itinStartMin)],
           ["Distance (km)", route ? Math.round(route.totalDistanceKm) : 0],
+          ["Drive time", route ? formatDuration(route.totalDurationSec) : "—"],
           ["Estimated cost (INR)", Math.round(cost.total)],
         ],
       },
-      { name: "Itinerary", headers: ["City", "Day", "Spot", "Duration", "Category"], rows: itinRows },
+      {
+        name: "Itinerary",
+        headers: ["Day", "City", "Time", "Activity", "Type", "Travel", "Duration"],
+        rows: itinRows,
+      },
       { name: "Hotels", headers: ["City", "Hotel", "Stars", "Price/night", "Nights", "Subtotal", "Best site"], rows: hotelRows },
       { name: "Activities", headers: ["City", "Activity", "Provider", "Price"], rows: actRows },
       { name: "Costs", headers: ["Item", "Category", "Amount (INR)"], rows: cost.items.map((it) => [it.label, it.category, Math.round(it.amount)]) },
@@ -172,6 +248,51 @@ export function ItineraryStep() {
         </div>
       </div>
 
+      {/* Schedule controls */}
+      <div className="no-print mb-8 flex flex-wrap items-center gap-5 border-2 border-primary bg-surface-container p-4">
+        <span className="flex items-center gap-2 text-xs font-bold uppercase tracking-widest">
+          <Clock className="size-4 text-tertiary" /> Schedule
+        </span>
+        <label className="flex items-center gap-2 text-xs font-bold uppercase tracking-wide">
+          Daily start
+          <select
+            value={itinStartMin}
+            onChange={(e) => setItinStartMin(Number(e.target.value))}
+            className="border-2 border-primary bg-surface px-2 py-1.5 text-xs font-bold uppercase tracking-wide"
+          >
+            {START_OPTIONS.map((o) => (
+              <option key={o.min} value={o.min}>
+                {o.label}
+              </option>
+            ))}
+          </select>
+        </label>
+        <label className="flex items-center gap-2 text-xs font-bold uppercase tracking-wide">
+          Day ends
+          <select
+            value={itinEndMin}
+            onChange={(e) => setItinEndMin(Number(e.target.value))}
+            className="border-2 border-primary bg-surface px-2 py-1.5 text-xs font-bold uppercase tracking-wide"
+          >
+            {END_OPTIONS.map((o) => (
+              <option key={o.min} value={o.min}>
+                {o.label}
+              </option>
+            ))}
+          </select>
+        </label>
+        <button
+          onClick={() => setItinLunch(!itinLunch)}
+          className={
+            "flex items-center gap-2 border-2 border-primary px-3 py-1.5 text-xs font-bold uppercase tracking-wide transition-colors " +
+            (itinLunch ? "bg-primary-container text-primary" : "bg-surface hover:bg-surface-container-high")
+          }
+        >
+          {itinLunch ? <Check className="size-3.5" strokeWidth={3} /> : <Utensils className="size-3.5" />}
+          Lunch break
+        </button>
+      </div>
+
       <div className="grid grid-cols-1 gap-8 lg:grid-cols-3">
         {/* Printable itinerary */}
         <div className="print-area space-y-8 lg:col-span-2">
@@ -193,10 +314,29 @@ export function ItineraryStep() {
               <span className="text-tertiary">{destination}</span>
             </h1>
             <p className="mt-3 text-base font-medium text-on-surface-variant">{routeLine}</p>
+            {/* compact at-a-glance facts — print friendly */}
+            <dl className="mt-4 flex flex-wrap gap-x-8 gap-y-2 border-t-2 border-primary/15 pt-4 text-sm font-bold uppercase tracking-wide">
+              <div>
+                <dt className="text-[10px] text-on-surface-variant">Cities · Days</dt>
+                <dd>{places.length} · {totalDays}</dd>
+              </div>
+              <div>
+                <dt className="text-[10px] text-on-surface-variant">Distance</dt>
+                <dd>{route ? `${Math.round(route.totalDistanceKm)} km` : "—"}</dd>
+              </div>
+              <div>
+                <dt className="text-[10px] text-on-surface-variant">Drive time</dt>
+                <dd>{route ? formatDuration(route.totalDurationSec) : "—"}</dd>
+              </div>
+              <div>
+                <dt className="text-[10px] text-on-surface-variant">Est. cost</dt>
+                <dd>{formatINR(cost.total)}</dd>
+              </div>
+            </dl>
           </header>
 
-          {/* route map */}
-          <section>
+          {/* route map (screen only — prints poorly) */}
+          <section className="no-print">
             <h2 className="mb-3 text-sm font-bold uppercase tracking-widest">Route Map</h2>
             <div className="h-[320px] overflow-hidden border-[3px] border-primary">
               <MapPanel stops={mapStops} route={route} />
@@ -209,11 +349,11 @@ export function ItineraryStep() {
             const hotel = hotels[p.id];
             const acts = activities[p.id] ?? [];
             const spots = plan ? selectedSpotsOf(store, p.id, plan) : [];
-            const perDay = plan ? Math.max(1, Math.ceil(spots.length / p.days)) : 0;
-            const startDay = startDays[idx];
+            const cityDays = daysByCity.get(idx) ?? [];
+            const startDayNum = cityDays[0]?.dayNumber ?? 1;
+            const endDayNum = cityDays[cityDays.length - 1]?.dayNumber ?? startDayNum;
             const leg = idx > 0 ? route?.legs[idx - 1] : null;
-            const dayRange =
-              p.days === 1 ? `Day ${startDay + 1}` : `Days ${startDay + 1}–${startDay + p.days}`;
+            const dayRange = startDayNum === endDayNum ? `Day ${startDayNum}` : `Days ${startDayNum}–${endDayNum}`;
             return (
               <section key={p.id} className="break-inside-avoid">
                 {/* travel connector from previous city */}
@@ -238,30 +378,88 @@ export function ItineraryStep() {
 
                   {plan && (
                     <div className="grid gap-6 p-5 md:grid-cols-[1fr_240px]">
-                      <div className="space-y-4">
-                        {Array.from({ length: p.days }).map((_, dayIdx) => {
-                          const daySpots = spots.slice(dayIdx * perDay, (dayIdx + 1) * perDay);
-                          if (!daySpots.length) return null;
-                          return (
-                            <div key={dayIdx}>
-                              <h3 className="mb-2 inline-block bg-primary px-2 py-0.5 text-[11px] font-bold uppercase tracking-widest text-white">
-                                Day {startDay + dayIdx + 1}
+                      <div className="space-y-5">
+                        {cityDays.map((day) => (
+                          <div key={day.dayNumber} className="break-inside-avoid">
+                            <div className="mb-3 flex flex-wrap items-center gap-2">
+                              <h3 className="inline-flex items-center gap-2 bg-primary px-2 py-0.5 text-[11px] font-bold uppercase tracking-widest text-white">
+                                <Sun className="size-3.5" /> Day {day.dayNumber}
                               </h3>
-                              <ul className="space-y-2">
-                                {daySpots.map((s, i) => (
-                                  <li key={i} className="flex items-start gap-3 border-l-2 border-primary pl-3">
-                                    <div>
-                                      <p className="font-bold uppercase">{s.name}</p>
-                                      <p className="text-sm font-medium text-on-surface-variant">
-                                        {fmtMin(s.durationMin)} · {s.description}
-                                      </p>
-                                    </div>
-                                  </li>
-                                ))}
-                              </ul>
+                              <span className="text-[10px] font-bold uppercase tracking-wide text-on-surface-variant">
+                                {fmtClock(itinStartMin)} – {fmtClock(day.endMin)}
+                              </span>
+                              {day.overflows && (
+                                <span className="inline-flex items-center gap-1 border-2 border-error bg-error-container px-1.5 py-0.5 text-[10px] font-bold uppercase tracking-wide text-error">
+                                  <AlertTriangle className="size-3" /> Runs late · trim a stop
+                                </span>
+                              )}
                             </div>
-                          );
-                        })}
+                            <ol className="space-y-0">
+                              {day.entries.map((e, i) => (
+                                <li key={i} className="flex gap-3">
+                                  {/* timeline gutter */}
+                                  <div className="flex flex-col items-end pt-0.5">
+                                    <span className="whitespace-nowrap text-[11px] font-bold tabular-nums text-tertiary">
+                                      {fmtClock(e.startMin)}
+                                    </span>
+                                  </div>
+                                  <div className="relative flex flex-col items-center">
+                                    <span
+                                      className={
+                                        "mt-1 size-2.5 shrink-0 border-2 border-primary " +
+                                        (e.kind === "spot" ? "bg-primary" : "bg-surface")
+                                      }
+                                    />
+                                    {i < day.entries.length - 1 && (
+                                      <span className="w-0.5 flex-1 bg-primary/25" />
+                                    )}
+                                  </div>
+                                  <div className="flex-1 pb-4">
+                                    {e.kind === "drive" ? (
+                                      <p className="flex items-center gap-1.5 text-sm font-bold uppercase text-on-surface-variant">
+                                        <Car className="size-3.5" /> {e.title}
+                                        <span className="font-medium normal-case">
+                                          · {e.travelKm?.toFixed(0)} km · {fmtMin(e.endMin - e.startMin)}
+                                        </span>
+                                      </p>
+                                    ) : e.kind === "lunch" ? (
+                                      <p className="flex items-center gap-1.5 text-sm font-bold uppercase text-on-surface-variant">
+                                        <Utensils className="size-3.5" /> {e.title}
+                                      </p>
+                                    ) : (
+                                      <>
+                                        <div className="flex flex-wrap items-baseline justify-between gap-x-3">
+                                          <p className="font-bold uppercase">
+                                            {e.title}
+                                            {e.overflow && (
+                                              <span className="ml-1.5 align-middle text-[9px] font-bold uppercase tracking-wide text-error">
+                                                · late
+                                              </span>
+                                            )}
+                                          </p>
+                                          <span
+                                            className={
+                                              "text-[11px] font-bold tabular-nums " +
+                                              (e.overflow ? "text-error" : "text-on-surface-variant")
+                                            }
+                                          >
+                                            {fmtClock(e.startMin)} – {fmtClock(e.endMin)}
+                                          </span>
+                                        </div>
+                                        <p className="text-sm font-medium text-on-surface-variant">
+                                          {e.travelMin ? (
+                                            <span className="text-tertiary">{e.travelMin} min drive · </span>
+                                          ) : null}
+                                          {fmtMin(e.endMin - e.startMin)} · {e.description}
+                                        </p>
+                                      </>
+                                    )}
+                                  </div>
+                                </li>
+                              ))}
+                            </ol>
+                          </div>
+                        ))}
                       </div>
 
                       <aside className="space-y-3 text-sm">

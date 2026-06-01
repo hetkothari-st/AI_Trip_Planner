@@ -100,16 +100,43 @@
 /* maplibre-gl base styles (imported here so the bundler picks them up) */
 @import "maplibre-gl/dist/maplibre-gl.css";
 
-/* Print: keep only the final itinerary for "Download PDF" */
+/* Print: a clean, professional one-document itinerary for "Download PDF" */
 @media print {
+  @page {
+    margin: 14mm;
+  }
+  html,
   body {
-    background: #fff;
+    background: #fff !important;
+  }
+  /* Keep the Bauhaus borders / solid fills in the printout. */
+  * {
+    -webkit-print-color-adjust: exact !important;
+    print-color-adjust: exact !important;
   }
   .no-print {
     display: none !important;
   }
+  /* The itinerary spans the full page once the sidebar/maps are hidden. */
   .print-area {
+    grid-column: 1 / -1 !important;
+    width: 100% !important;
+    max-width: 100% !important;
+  }
+  /* Drop the heavy offset shadows — they muddy a printed page. */
+  .neo-shadow,
+  .neo-shadow-sm {
     box-shadow: none !important;
-    border: none !important;
+  }
+  /* Don't split a city card or a day across two pages. */
+  .break-inside-avoid,
+  section,
+  li {
+    break-inside: avoid;
+  }
+  h1,
+  h2,
+  h3 {
+    break-after: avoid;
   }
 }

@@ -33,6 +33,9 @@ export interface TripSnapshot {
   startId: string | null;
   endId: string | null;
   route: RouteResult | null;
+  itinStartMin: number; // daily schedule start, minutes from midnight (default 09:00)
+  itinEndMin: number; // soft day-end cap; stops past it are flagged "late" (default 19:00)
+  itinLunch: boolean; // insert a lunch break into each day
 }
 
 interface TripState extends TripSnapshot {
@@ -60,6 +63,9 @@ interface TripState extends TripSnapshot {
   setStart: (id: string | null) => void;
   setEnd: (id: string | null) => void;
   setRoute: (r: RouteResult | null) => void;
+  setItinStartMin: (min: number) => void;
+  setItinEndMin: (min: number) => void;
+  setItinLunch: (on: boolean) => void;
 
   /** Deselect every place at once (drops their derived city plans, hotels, activities). */
   clearPlaces: () => void;
@@ -87,6 +93,9 @@ const initial = {
   startId: null,
   endId: null,
   route: null,
+  itinStartMin: 9 * 60,
+  itinEndMin: 19 * 60,
+  itinLunch: true,
 };
 
 export const useTrip = create<TripState>()(
@@ -197,6 +206,9 @@ export const useTrip = create<TripState>()(
       setStart: (startId) => set({ startId }),
       setEnd: (endId) => set({ endId }),
       setRoute: (route) => set({ route }),
+      setItinStartMin: (itinStartMin) => set({ itinStartMin }),
+      setItinEndMin: (itinEndMin) => set({ itinEndMin }),
+      setItinLunch: (itinLunch) => set({ itinLunch }),
 
       clearPlaces: () =>
         set({
@@ -265,6 +277,9 @@ export function snapshotOf(state: TripState): TripSnapshot {
     startId: state.startId,
     endId: state.endId,
     route: state.route,
+    itinStartMin: state.itinStartMin,
+    itinEndMin: state.itinEndMin,
+    itinLunch: state.itinLunch,
   };
 }
 
