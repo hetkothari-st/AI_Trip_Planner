@@ -7,9 +7,9 @@ import { cn } from "@/lib/utils";
 import { AuthButton } from "@/components/auth/AuthButton";
 
 const LINKS = [
-  { label: "Explore", href: "/plan" },
-  { label: "Itineraries", href: "/trips" },
-  { label: "Insights", href: "/travels" },
+  { label: "Plan", href: "/plan" },
+  { label: "My Trips", href: "/trips" },
+  { label: "Travel History", href: "/travels" },
 ] as const;
 
 /**
