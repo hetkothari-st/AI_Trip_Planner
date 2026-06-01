@@ -8,6 +8,8 @@ export interface ImageResult {
 
 // Cache resolved images 7 days. Keeps us off rate-limited APIs and makes repeats instant.
 const imgCache = new TTLCache<ImageResult>(7 * 24 * 60 * 60 * 1000, 1000);
+// Galleries (several photos per place) cached separately, same 7-day window.
+const galleryCache = new TTLCache<ImageResult[]>(7 * 24 * 60 * 60 * 1000, 500);
 
 // Wikimedia asks for a descriptive User-Agent identifying the app + contact.
 const WIKI_UA = "VoyagerTripPlanner/1.0 (https://aitrip.up.railway.app)";
@@ -44,6 +46,82 @@ export async function getImages(queries: string[]): Promise<ImageResult[]> {
     used.add(alt.url);
     return alt;
   });
+}
+
+/**
+ * Resolve a small gallery of REAL photos for a place from Wikimedia Commons. One API call
+ * searches the File namespace for the place name and returns each match's thumbnail. Falls
+ * back to the single lead image (getImage) when Commons has nothing usable, so the modal
+ * always shows at least one photo.
+ */
+export async function getGallery(query: string, limit = 6): Promise<ImageResult[]> {
+  const key = `${query}|${limit}`;
+  const cached = galleryCache.get(key);
+  if (cached) return cached;
+
+  const name = query.split(",")[0].replace(/\(.*?\)/g, "").trim();
+  let results: ImageResult[] = [];
+  if (name) {
+    try {
+      const url = new URL("https://commons.wikimedia.org/w/api.php");
+      url.search = new URLSearchParams({
+        action: "query",
+        generator: "search",
+        gsrsearch: name,
+        gsrnamespace: "6", // File:
+        gsrlimit: String(limit * 3), // over-fetch; we filter non-photos out
+        prop: "imageinfo",
+        iiprop: "url|extmetadata",
+        iiurlwidth: "1024",
+        format: "json",
+        origin: "*",
+      }).toString();
+      const res = await fetch(url, { headers: { "User-Agent": WIKI_UA } });
+      if (!res.ok) throw new Error(`commons ${res.status}`);
+      const data = (await res.json()) as {
+        query?: {
+          pages?: Record<
+            string,
+            {
+              title?: string;
+              imageinfo?: { thumburl?: string; url?: string; extmetadata?: { Artist?: { value?: string } } }[];
+            }
+          >;
+        };
+      };
+      const pages = data.query?.pages ? Object.values(data.query.pages) : [];
+      const seen = new Set<string>();
+      for (const page of pages) {
+        const info = page.imageinfo?.[0];
+        const src = info?.thumburl ?? info?.url;
+        if (!src) continue;
+        // Photos only — skip SVGs, PDFs, maps, icons. Guard against malformed URLs.
+        let pathname: string;
+        try {
+          pathname = new URL(src).pathname;
+        } catch {
+          continue;
+        }
+        if (!/\.(jpe?g|png)$/i.test(pathname)) continue;
+        if (seen.has(src)) continue;
+        seen.add(src);
+        results.push({ url: src, attribution: stripHtml(info?.extmetadata?.Artist?.value) ?? "Wikimedia Commons" });
+        if (results.length >= limit) break;
+      }
+    } catch (err) {
+      console.error(`[images] commons gallery "${name}" failed:`, err);
+    }
+  }
+
+  if (results.length === 0) results = [await getImage(query)];
+  galleryCache.set(key, results);
+  return results;
+}
+
+function stripHtml(s?: string): string | undefined {
+  if (!s) return undefined;
+  const text = s.replace(/<[^>]*>/g, "").trim();
+  return text ? `© ${text} · Wikimedia Commons` : undefined;
 }
 
 /**

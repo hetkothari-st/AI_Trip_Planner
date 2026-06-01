@@ -36,6 +36,8 @@ export interface TripSnapshot {
   itinStartMin: number; // daily schedule start, minutes from midnight (default 09:00)
   itinEndMin: number; // soft day-end cap; stops past it are flagged "late" (default 19:00)
   itinLunch: boolean; // insert a lunch break into each day
+  travellers: number; // party size for the whole trip (drives costs), default 2
+  activityPeople: Record<string, number>; // per-activity headcount override, key `${placeId}:${activityId}`
 }
 
 interface TripState extends TripSnapshot {
@@ -66,6 +68,8 @@ interface TripState extends TripSnapshot {
   setItinStartMin: (min: number) => void;
   setItinEndMin: (min: number) => void;
   setItinLunch: (on: boolean) => void;
+  setTravellers: (n: number) => void;
+  setActivityPeople: (placeId: string, activityId: string, n: number) => void;
 
   /** Deselect every place at once (drops their derived city plans, hotels, activities). */
   clearPlaces: () => void;
@@ -96,6 +100,8 @@ const initial = {
   itinStartMin: 9 * 60,
   itinEndMin: 19 * 60,
   itinLunch: true,
+  travellers: 2,
+  activityPeople: {} as Record<string, number>,
 };
 
 export const useTrip = create<TripState>()(
@@ -144,6 +150,10 @@ export const useTrip = create<TripState>()(
             delete selectedSpots[p.id];
             delete hotels[p.id];
             delete activities[p.id];
+            // Drop this city's per-activity headcount overrides (keys `${p.id}:...`).
+            const activityPeople = Object.fromEntries(
+              Object.entries(s.activityPeople).filter(([k]) => !k.startsWith(`${p.id}:`)),
+            );
             return {
               selected,
               order,
@@ -151,6 +161,7 @@ export const useTrip = create<TripState>()(
               selectedSpots,
               hotels,
               activities,
+              activityPeople,
               startId: s.startId === p.id ? null : s.startId,
               endId: s.endId === p.id ? null : s.endId,
             };
@@ -209,6 +220,11 @@ export const useTrip = create<TripState>()(
       setItinStartMin: (itinStartMin) => set({ itinStartMin }),
       setItinEndMin: (itinEndMin) => set({ itinEndMin }),
       setItinLunch: (itinLunch) => set({ itinLunch }),
+      setTravellers: (travellers) => set({ travellers: Math.max(1, travellers) }),
+      setActivityPeople: (placeId, activityId, n) =>
+        set((s) => ({
+          activityPeople: { ...s.activityPeople, [`${placeId}:${activityId}`]: Math.max(1, n) },
+        })),
 
       clearPlaces: () =>
         set({
@@ -218,6 +234,7 @@ export const useTrip = create<TripState>()(
           selectedSpots: {},
           hotels: {},
           activities: {},
+          activityPeople: {},
           startId: null,
           endId: null,
           route: null,
@@ -251,6 +268,16 @@ export function selectedSpotsOf(
   return plan.spots.filter((sp) => keep.has(sp.name));
 }
 
+/** Headcount for one activity: its per-activity override, else the trip party size. */
+export function activityPeopleOf(state: TripState, placeId: string, activityId: string): number {
+  return state.activityPeople[`${placeId}:${activityId}`] ?? state.travellers;
+}
+
+/** Hotel rooms needed for the party (2 people per room, min 1). */
+export function roomsFor(travellers: number): number {
+  return Math.max(1, Math.ceil(travellers / 2));
+}
+
 /** Suggested days for a city from its kept-spot count (~3 spots a day, min 1). */
 export function suggestedDays(spotCount: number): number {
   return Math.max(1, Math.ceil(spotCount / 3));
@@ -280,6 +307,8 @@ export function snapshotOf(state: TripState): TripSnapshot {
     itinStartMin: state.itinStartMin,
     itinEndMin: state.itinEndMin,
     itinLunch: state.itinLunch,
+    travellers: state.travellers,
+    activityPeople: state.activityPeople,
   };
 }
 

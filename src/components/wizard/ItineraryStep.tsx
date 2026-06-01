@@ -66,6 +66,8 @@ export function ItineraryStep() {
     itinStartMin,
     itinEndMin,
     itinLunch,
+    travellers,
+    activityPeople,
     setItinStartMin,
     setItinEndMin,
     setItinLunch,
@@ -77,6 +79,8 @@ export function ItineraryStep() {
     hotels,
     activities,
     route,
+    travellers,
+    activityPeople,
   });
   const venues = places.reduce((n, p) => {
     const plan = cityPlans[p.id];
@@ -144,8 +148,14 @@ export function ItineraryStep() {
         lng: p.lng,
         photoUrl: p.imageUrl,
         budget: Math.round(
-          computeCost({ places: [{ id: p.id, name: p.name, days: p.days }], hotels, activities, route: null })
-            .total,
+          computeCost({
+            places: [{ id: p.id, name: p.name, days: p.days }],
+            hotels,
+            activities,
+            route: null,
+            travellers,
+            activityPeople,
+          }).total,
         ),
         activities: (activities[p.id] ?? []).map((a) => a.name),
         companions: 2,
@@ -531,7 +541,7 @@ export function ItineraryStep() {
               ))}
             </ul>
             <div className="mt-3 flex justify-between border-t-2 border-primary pt-3 text-lg font-bold uppercase">
-              <span>Total · 2 travellers</span>
+              <span>Total · {travellers} {travellers === 1 ? "traveller" : "travellers"}</span>
               <span>{formatINR(cost.total)}</span>
             </div>
           </section>

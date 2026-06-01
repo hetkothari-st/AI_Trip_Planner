@@ -18,11 +18,14 @@ import {
   Minus,
   Plus,
   Map as MapTab,
+  Image as ImageIcon,
+  Trash2,
 } from "lucide-react";
 import { HotelPanel } from "@/components/hotels/HotelPanel";
 import { ActivitiesPanel } from "@/components/activities/ActivitiesPanel";
 import { CityMiniMap } from "@/components/map/CityMiniMap";
 import { CostSummary } from "@/components/cost/CostSummary";
+import { SpotPhotoModal } from "@/components/spots/SpotPhotoModal";
 import { cn } from "@/lib/utils";
 import { useTrip, selectedList, selectedSpotsOf, suggestedDays } from "@/lib/store/trip";
 import { formatINR } from "@/lib/cost";
@@ -47,11 +50,12 @@ function fmtMin(min: number): string {
 
 export function CitiesStep() {
   const store = useTrip();
-  const { destination, cityPlans, setCityPlan, selectedSpots, toggleSpot, hotels, activities, setDays, back, next } =
+  const { destination, cityPlans, setCityPlan, selectedSpots, toggleSpot, togglePlace, hotels, activities, setDays, back, next } =
     store;
   const places = selectedList(store);
   const [loading, setLoading] = useState<Record<string, boolean>>({});
   const [tabs, setTabs] = useState<Record<string, Tab>>({});
+  const [photo, setPhoto] = useState<{ spot: CitySpot; city: string } | null>(null);
 
   const loadPlan = useCallback(
     async (id: string, city: string, days: number) => {
@@ -155,6 +159,17 @@ export function CitiesStep() {
                         <Plus className="size-3.5" strokeWidth={3} />
                       </button>
                     </div>
+                    <button
+                      onClick={() => {
+                        if (window.confirm(`Remove ${p.name} from your trip? Its hotel, activities and plan will be dropped.`))
+                          togglePlace(p);
+                      }}
+                      aria-label={`Remove ${p.name}`}
+                      title="Remove city"
+                      className="flex size-8 items-center justify-center border-2 border-white hover:bg-error hover:text-white"
+                    >
+                      <Trash2 className="size-3.5" strokeWidth={2.5} />
+                    </button>
                   </div>
                 </div>
 
@@ -209,27 +224,40 @@ export function CitiesStep() {
                                 const Icon = SPOT_ICON[s.category];
                                 const on = keptNames.includes(s.name);
                                 return (
-                                  <li key={i}>
+                                  <li
+                                    key={i}
+                                    className={cn(
+                                      "flex items-stretch border-2 border-primary transition-all",
+                                      on ? "bg-primary-container" : "bg-surface-container-lowest opacity-60 hover:opacity-100",
+                                    )}
+                                  >
+                                    {/* checkbox toggles keep/drop */}
                                     <button
                                       type="button"
                                       onClick={() => toggleSpot(p.id, s.name)}
-                                      className={cn(
-                                        "flex w-full items-start gap-3 border-2 border-primary p-3 text-left transition-all",
-                                        on ? "bg-primary-container" : "bg-surface-container-lowest opacity-60 hover:opacity-100",
-                                      )}
+                                      aria-label={on ? `Remove ${s.name}` : `Add ${s.name}`}
+                                      className="flex shrink-0 items-center border-r-2 border-primary px-3 hover:bg-surface-container-high"
                                     >
                                       <span
                                         className={cn(
-                                          "mt-0.5 flex size-5 shrink-0 items-center justify-center border-2 border-primary",
+                                          "flex size-5 items-center justify-center border-2 border-primary",
                                           on ? "bg-primary text-white" : "bg-surface",
                                         )}
                                       >
                                         {on && <Check className="size-3" strokeWidth={3} />}
                                       </span>
+                                    </button>
+                                    {/* rest of the row opens the photo gallery */}
+                                    <button
+                                      type="button"
+                                      onClick={() => setPhoto({ spot: s, city: p.name })}
+                                      className="flex flex-1 items-start gap-3 p-3 text-left"
+                                    >
                                       <div className="flex-1">
                                         <p className="flex items-center gap-1.5 font-bold uppercase">
                                           <Icon className="size-3.5" />
                                           {s.name}
+                                          <ImageIcon className="size-3.5 text-tertiary" />
                                         </p>
                                         <p className="text-sm font-medium text-on-surface-variant">{s.description}</p>
                                       </div>
@@ -352,6 +380,15 @@ export function CitiesStep() {
           View Route on Map <ArrowRight className="size-4" strokeWidth={3} />
         </button>
       </div>
+
+      {photo && (
+        <SpotPhotoModal
+          spot={photo.spot}
+          city={photo.city}
+          destination={destination}
+          onClose={() => setPhoto(null)}
+        />
+      )}
     </div>
   );
 }

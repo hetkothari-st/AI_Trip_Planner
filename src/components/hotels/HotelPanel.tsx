@@ -4,7 +4,7 @@ import { useState } from "react";
 import { Loader2, Star, Check, ExternalLink, BadgeCheck, ChevronDown, MapPin, Navigation } from "lucide-react";
 import { Slider } from "@/components/ui/slider";
 import { cn, estTravel, formatDuration } from "@/lib/utils";
-import { useTrip, selectedSpotsOf } from "@/lib/store/trip";
+import { useTrip, selectedSpotsOf, roomsFor } from "@/lib/store/trip";
 import { formatINR } from "@/lib/cost";
 import type { Hotel } from "@/lib/hotels/types";
 
@@ -22,8 +22,9 @@ export function HotelPanel({
   cityLng?: number;
 }) {
   const store = useTrip();
-  const { destination, hotels, setHotel } = store;
+  const { destination, hotels, setHotel, travellers } = store;
   const chosen = hotels[placeId];
+  const rooms = roomsFor(travellers);
 
   // The user's kept spots for this city that have coordinates — for hotel→spot distances.
   const plan = store.cityPlans[placeId];
@@ -54,6 +55,10 @@ export function HotelPanel({
 
   return (
     <div className="space-y-4">
+      <p className="text-[11px] font-bold uppercase tracking-wide text-on-surface-variant">
+        Pricing for {travellers} {travellers === 1 ? "traveller" : "travellers"} · {rooms}{" "}
+        {rooms === 1 ? "room" : "rooms"} (2 per room)
+      </p>
       {/* filters */}
       <div className="flex flex-wrap items-end gap-5 border-2 border-primary bg-surface-container p-4">
         <div className="min-w-[220px] flex-1">
@@ -136,7 +141,10 @@ export function HotelPanel({
                   </p>
                   <div className="mt-1">
                     <span className="text-lg font-bold">{formatINR(h.pricePerNight)}</span>
-                    <span className="text-[11px] font-medium text-on-surface-variant"> /night · best on {h.bestPriceSite}</span>
+                    <span className="text-[11px] font-medium text-on-surface-variant">
+                      {" "}
+                      /night/room{rooms > 1 ? ` · ${rooms} rooms` : ""} · best on {h.bestPriceSite}
+                    </span>
                   </div>
                 </div>
               </div>
@@ -219,7 +227,9 @@ export function HotelPanel({
                   )}
                 >
                   {isChosen ? <Check className="size-4" strokeWidth={3} /> : null}
-                  {isChosen ? `Selected · ${formatINR(h.pricePerNight * nights)} / ${nights} nights` : "Select Hotel"}
+                  {isChosen
+                    ? `Selected · ${formatINR(h.pricePerNight * nights * rooms)} · ${nights} nights × ${rooms} ${rooms === 1 ? "room" : "rooms"}`
+                    : "Select Hotel"}
                 </button>
               </div>
             </div>

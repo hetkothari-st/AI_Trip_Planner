@@ -1,9 +1,9 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { Loader2, Star, Check, Clock, ShieldCheck, MapPin, Plus } from "lucide-react";
+import { Loader2, Star, Check, Clock, ShieldCheck, MapPin, Plus, Minus, Users } from "lucide-react";
 import { cn, estTravel } from "@/lib/utils";
-import { useTrip, selectedSpotsOf } from "@/lib/store/trip";
+import { useTrip, selectedSpotsOf, activityPeopleOf } from "@/lib/store/trip";
 import { formatINR } from "@/lib/cost";
 import type { Activity } from "@/lib/ai/schemas";
 
@@ -25,7 +25,7 @@ export function ActivitiesPanel({
   cityLng?: number;
 }) {
   const store = useTrip();
-  const { destination, activities, toggleActivity } = store;
+  const { destination, activities, toggleActivity, setActivityPeople } = store;
   const chosen = activities[placeId] ?? [];
   const [list, setList] = useState<Activity[] | null>(null);
   const [loading, setLoading] = useState(false);
@@ -76,6 +76,7 @@ export function ActivitiesPanel({
       {list?.map((a) => {
         const isChosen = chosen.some((x) => x.id === a.id);
         const near = nearestSpot(a);
+        const people = activityPeopleOf(store, placeId, a.id);
         return (
           <div
             key={a.id}
@@ -88,6 +89,7 @@ export function ActivitiesPanel({
               <h4 className="text-lg font-bold uppercase leading-tight">{a.name}</h4>
               <span className="shrink-0 bg-primary px-2 py-1 text-sm font-bold text-primary-container">
                 {formatINR(a.price)}
+                <span className="text-[9px] font-medium">/person</span>
               </span>
             </div>
             <p className="mt-2 flex-1 text-sm font-medium text-on-surface-variant">{a.description}</p>
@@ -106,6 +108,34 @@ export function ActivitiesPanel({
               <p className="mt-2 flex items-center gap-1 text-[11px] font-bold uppercase tracking-wide text-tertiary">
                 <MapPin className="size-3.5" /> Near {near.name} · {near.km.toFixed(1)} km
               </p>
+            )}
+            {isChosen && (
+              <div className="mt-3 flex items-center justify-between gap-2 border-2 border-primary bg-surface-container p-2">
+                <span className="flex items-center gap-1.5 text-[10px] font-bold uppercase tracking-widest text-on-surface-variant">
+                  <Users className="size-3.5" /> People
+                </span>
+                <div className="flex items-center gap-2">
+                  <div className="flex items-center border-2 border-primary">
+                    <button
+                      className="flex size-7 items-center justify-center hover:bg-primary hover:text-white disabled:opacity-40"
+                      onClick={() => setActivityPeople(placeId, a.id, people - 1)}
+                      disabled={people <= 1}
+                      aria-label="Fewer people"
+                    >
+                      <Minus className="size-3" strokeWidth={3} />
+                    </button>
+                    <span className="min-w-[32px] text-center text-sm font-bold tabular-nums">{people}</span>
+                    <button
+                      className="flex size-7 items-center justify-center hover:bg-primary hover:text-white"
+                      onClick={() => setActivityPeople(placeId, a.id, people + 1)}
+                      aria-label="More people"
+                    >
+                      <Plus className="size-3" strokeWidth={3} />
+                    </button>
+                  </div>
+                  <span className="text-sm font-bold">= {formatINR(a.price * people)}</span>
+                </div>
+              </div>
             )}
             <button
               onClick={() => toggleActivity(placeId, a)}
