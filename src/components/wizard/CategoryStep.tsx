@@ -116,7 +116,7 @@ export function CategoryStep() {
       )}
 
       {/* Persona cards */}
-      <div className="grid grid-cols-1 gap-6 sm:grid-cols-2">
+      <div className="grid grid-cols-1 gap-5 sm:grid-cols-2">
         {categories.map((c) => {
           const selected = selectedCategoryIds.includes(c.id);
           const Icon = (c.icon && ICONS[c.icon]) || Landmark;
@@ -125,34 +125,34 @@ export function CategoryStep() {
               key={c.id}
               onClick={() => toggleCategory(c.id)}
               className={cn(
-                "flex flex-col border-[3px] border-primary p-7 text-left transition-all",
+                "flex flex-col border-[3px] border-primary p-5 text-left transition-all",
                 selected ? "bg-primary-container neo-shadow" : "bg-surface-bright neo-shadow-hover",
               )}
             >
-              <div className="mb-8 flex items-start justify-between">
-                <Icon className="size-10" strokeWidth={2.25} />
-                <span className="border-2 border-primary px-3 py-1 text-[11px] font-bold uppercase tracking-widest">
+              <div className="mb-5 flex items-start justify-between">
+                <Icon className="size-7" strokeWidth={2.25} />
+                <span className="border-2 border-primary px-2 py-0.5 text-[10px] font-bold uppercase tracking-widest">
                   {matchRate(c.id)}% Match
                 </span>
               </div>
 
-              <h3 className="mb-3 text-4xl font-bold uppercase leading-none">{c.label}</h3>
-              <p className="mb-6 text-sm font-medium leading-relaxed text-on-surface-variant">
+              <h3 className="mb-2 text-2xl font-bold uppercase leading-none">{c.label}</h3>
+              <p className="mb-4 text-xs font-medium leading-relaxed text-on-surface-variant">
                 {c.description}
               </p>
 
-              <div className="mt-auto border-t border-primary/20 bg-surface-container-low p-4">
-                <p className="mb-1.5 flex items-center gap-1.5 text-[11px] font-bold uppercase tracking-widest text-tertiary">
-                  <Cpu className="size-3.5" /> AI Logic Path
+              <div className="mt-auto border-t border-primary/20 bg-surface-container-low p-3">
+                <p className="mb-1 flex items-center gap-1.5 text-[10px] font-bold uppercase tracking-widest text-tertiary">
+                  <Cpu className="size-3" /> AI Logic Path
                 </p>
-                <p className="text-[13px] font-medium italic text-on-surface-variant">
+                <p className="text-[11px] font-medium italic text-on-surface-variant">
                   Calibrates {c.label.toLowerCase()} density across {regionLabel} using historical
                   access and seasonal data.
                 </p>
               </div>
 
               {selected && (
-                <span className="mt-4 inline-flex items-center gap-1.5 text-xs font-bold uppercase tracking-widest text-primary">
+                <span className="mt-3 inline-flex items-center gap-1.5 text-xs font-bold uppercase tracking-widest text-primary">
                   <Check className="size-4" strokeWidth={3} /> Selected
                 </span>
               )}

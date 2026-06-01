@@ -97,20 +97,20 @@ export function RegionStep() {
 
       {/* Header */}
       <header className="mb-12">
-        <h1 className="mb-4 text-6xl font-bold uppercase leading-[0.9] tracking-tighter md:text-8xl">
+        <h1 className="mb-4 text-4xl font-bold uppercase leading-[0.9] tracking-tighter md:text-6xl">
           Select
           <br />
           Your <span className="text-secondary">Zone.</span>
         </h1>
         <div className="flex flex-col justify-between gap-6 md:flex-row md:items-end">
-          <p className="max-w-xl border-l-4 border-primary pl-6 text-lg font-medium">
+          <p className="max-w-xl border-l-4 border-primary pl-4 text-sm font-medium">
             Analyze {destination}&apos;s distinct belts. Each has its own character and best
             season — pick one or more to combine into a single trip.
           </p>
           {recommended && (
-            <div className="flex items-center gap-3 bg-primary px-6 py-3 text-primary-container neo-shadow">
-              <Zap className="size-5 shrink-0" fill="currentColor" />
-              <span className="text-sm font-bold uppercase tracking-wide">
+            <div className="flex items-center gap-2 bg-primary px-4 py-2 text-primary-container neo-shadow">
+              <Zap className="size-4 shrink-0" fill="currentColor" />
+              <span className="text-xs font-bold uppercase tracking-wide">
                 AI Rec: {recommended.name} · {seasonBadge(recommended.bestSeason)}
               </span>
             </div>
@@ -119,7 +119,7 @@ export function RegionStep() {
       </header>
 
       {error && (
-        <p className="mb-6 border-2 border-secondary bg-secondary/10 px-4 py-2 text-sm font-bold uppercase tracking-wide text-secondary">
+        <p className="mb-6 border-2 border-secondary bg-secondary/10 px-4 py-2 text-xs font-bold uppercase tracking-wide text-secondary">
           {error}
         </p>
       )}
@@ -168,20 +168,20 @@ export function RegionStep() {
                     <Star className="size-3" fill="currentColor" /> Visited
                   </span>
                 )}
-                <h3 className="absolute bottom-3 left-3 text-3xl font-bold uppercase leading-none text-white">
+                <h3 className="absolute bottom-3 left-3 text-xl font-bold uppercase leading-none text-white">
                   {r.name}
                 </h3>
               </button>
 
               {/* Body */}
               <div className="flex flex-1 flex-col gap-4 p-5">
-                <p className="text-sm font-medium leading-relaxed text-on-surface-variant">
+                <p className="text-xs font-medium leading-relaxed text-on-surface-variant">
                   {r.blurb}
                 </p>
 
                 {/* Visited awareness */}
                 {visited.length > 0 && (
-                  <div className="border-2 border-tertiary bg-tertiary/10 p-3 text-sm">
+                  <div className="border-2 border-tertiary bg-tertiary/10 p-3 text-xs">
                     <p className="flex items-center gap-1.5 font-bold uppercase tracking-wide text-tertiary">
                       <BadgeCheck className="size-4" />
                       Visited {visited.length} place{visited.length > 1 ? "s" : ""}
@@ -259,7 +259,7 @@ export function RegionStep() {
                 <button
                   onClick={() => toggleRegion(r.id)}
                   className={cn(
-                    "mt-auto flex items-center justify-center gap-2 border-2 border-primary px-4 py-3 text-sm font-bold uppercase tracking-widest transition-colors",
+                    "mt-auto flex items-center justify-center gap-2 border-2 border-primary px-4 py-2.5 text-xs font-bold uppercase tracking-widest transition-colors",
                     selected
                       ? "bg-primary-container text-primary"
                       : "bg-primary text-white hover:bg-primary-container hover:text-primary",
@@ -276,8 +276,8 @@ export function RegionStep() {
 
       {/* Sticky continue bar */}
       <div className="sticky bottom-4 mt-10 flex flex-col items-start justify-between gap-3 border-[3px] border-primary bg-surface p-4 neo-shadow sm:flex-row sm:items-center">
-        <p className="text-sm font-medium text-on-surface-variant">
-          <span className="text-lg font-bold text-primary">{chosen.length}</span>{" "}
+        <p className="text-xs font-medium text-on-surface-variant">
+          <span className="text-base font-bold text-primary">{chosen.length}</span>{" "}
           {chosen.length === 1 ? "zone" : "zones"} selected
           {chosen.length > 0 && (
             <span className="font-bold text-primary"> · {chosen.map((r) => r.name).join(", ")}</span>
@@ -286,7 +286,7 @@ export function RegionStep() {
         <button
           disabled={chosen.length === 0 || loading}
           onClick={proceed}
-          className="flex w-full items-center justify-center gap-2 border-2 border-primary bg-primary-container px-8 py-3 text-sm font-bold uppercase tracking-widest text-primary neo-shadow-hover disabled:opacity-50 sm:w-auto"
+          className="flex w-full items-center justify-center gap-2 border-2 border-primary bg-primary-container px-8 py-2.5 text-xs font-bold uppercase tracking-widest text-primary neo-shadow-hover disabled:opacity-50 sm:w-auto"
         >
           {loading ? <Loader2 className="size-4 animate-spin" /> : <ArrowRight className="size-4" strokeWidth={3} />}
           {loading ? "Loading Styles…" : "Choose Travel Styles"}

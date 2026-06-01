@@ -88,9 +88,9 @@ export function SpotPhotoModal({
         </div>
 
         {/* body */}
-        <div className="flex min-h-0 flex-1 flex-col overflow-y-auto">
+        <div className="flex min-h-0 flex-1 flex-col">
           {/* hero image */}
-          <div className="relative flex aspect-video items-center justify-center border-b-[3px] border-primary bg-surface-container">
+          <div className="relative flex h-[38vh] shrink-0 items-center justify-center border-b-[3px] border-primary bg-surface-container">
             {loading ? (
               <Loader2 className="size-8 animate-spin text-on-surface-variant" />
             ) : hero ? (
@@ -105,7 +105,7 @@ export function SpotPhotoModal({
 
           {/* thumbnails */}
           {photos && photos.length > 1 && (
-            <div className="flex gap-2 overflow-x-auto border-b-2 border-primary/15 p-3">
+            <div className="flex shrink-0 flex-wrap gap-2 border-b-2 border-primary/15 bg-surface-bright p-3">
               {photos.map((p, i) => (
                 <button
                   key={p.url}
@@ -123,7 +123,7 @@ export function SpotPhotoModal({
           )}
 
           {/* details */}
-          <div className="space-y-2 p-4">
+          <div className="min-h-0 flex-1 space-y-2 overflow-y-auto bg-surface-bright p-4">
             <p className="text-sm font-medium text-on-surface-variant">{spot.description}</p>
             {hero?.attribution && (
               <p className="text-[10px] font-medium uppercase tracking-wide text-on-surface-variant/70">
