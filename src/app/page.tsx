@@ -66,17 +66,17 @@ export default function Home() {
       <TopNav />
 
       {/* Hero */}
-      <main className="relative min-h-screen overflow-hidden px-6 pt-32 md:px-8">
+      <main className="relative min-h-screen overflow-hidden px-6 pt-24 md:px-8">
         {/* Bauhaus geometric background motifs */}
         <div className="absolute left-[-5rem] top-1/4 -z-10 size-64 rotate-12 border-4 border-primary bg-primary-container" />
         <div className="absolute bottom-1/4 right-[-4rem] -z-10 size-80 rounded-full border-4 border-primary bg-secondary" />
 
         <div className="mx-auto flex max-w-7xl flex-col items-center text-center">
-          <div className="mt-8 space-y-5">
-            <span className="inline-block border-2 border-primary bg-tertiary px-4 py-1 text-xs font-bold uppercase tracking-widest text-white neo-shadow">
+          <div className="mt-6 space-y-4">
+            <span className="inline-block border-2 border-primary bg-tertiary px-3 py-1 text-[0.65rem] font-bold uppercase tracking-widest text-white neo-shadow">
               AI Optimization Active
             </span>
-            <h1 className="text-7xl font-extrabold uppercase leading-[0.85] tracking-tighter text-primary md:text-[10rem]">
+            <h1 className="text-5xl font-extrabold uppercase leading-[0.85] tracking-tighter text-primary md:text-[6.5rem]">
               Precision
               <br />
               Exploration
@@ -84,12 +84,12 @@ export default function Home() {
           </div>
 
           {/* Massive search bar */}
-          <div className="relative mt-16 w-full max-w-5xl">
+          <div className="relative mt-10 w-full max-w-3xl">
             <div className="group relative">
               <div className="absolute -inset-2 -z-10 bg-primary transition-colors duration-300 group-focus-within:bg-tertiary" />
-              <div className="flex flex-col items-center gap-6 border-4 border-primary bg-surface p-6 md:flex-row md:p-10">
+              <div className="flex flex-col items-center gap-4 border-4 border-primary bg-surface p-4 md:flex-row md:p-7">
                 <div className="w-full flex-1 text-left">
-                  <label className="mb-2 block text-[0.65rem] font-bold uppercase tracking-widest text-on-surface-variant">
+                  <label className="mb-2 block text-[0.6rem] font-bold uppercase tracking-widest text-on-surface-variant">
                     Where to?
                   </label>
                   <input
@@ -98,19 +98,19 @@ export default function Home() {
                     onChange={(e) => setValue(e.target.value)}
                     onKeyDown={(e) => e.key === "Enter" && analyze()}
                     placeholder="UTTARAKHAND"
-                    className="w-full border-b-4 border-primary bg-transparent py-2 text-4xl font-bold uppercase outline-none transition-colors placeholder:text-surface-dim focus:border-tertiary md:text-6xl"
+                    className="w-full border-b-4 border-primary bg-transparent py-1.5 text-2xl font-bold uppercase outline-none transition-colors placeholder:text-surface-dim focus:border-tertiary md:text-4xl"
                   />
                 </div>
                 <button
                   onClick={analyze}
                   disabled={loading}
-                  className="flex w-full items-center justify-center gap-4 border-4 border-primary bg-primary-container px-12 py-6 text-2xl font-bold uppercase text-primary neo-shadow-hover disabled:opacity-70 md:w-auto"
+                  className="flex w-full items-center justify-center gap-3 border-4 border-primary bg-primary-container px-8 py-4 text-xl font-bold uppercase text-primary neo-shadow-hover disabled:opacity-70 md:w-auto"
                 >
                   {loading ? "Analyzing" : "Analyze"}
                   {loading ? (
-                    <Loader2 className="size-8 animate-spin" />
+                    <Loader2 className="size-6 animate-spin" />
                   ) : (
-                    <ArrowRight className="size-8" strokeWidth={3} />
+                    <ArrowRight className="size-6" strokeWidth={3} />
                   )}
                 </button>
               </div>
@@ -123,12 +123,12 @@ export default function Home() {
           </div>
 
           {/* Feature grid */}
-          <div className="mb-32 mt-24 grid w-full max-w-5xl grid-cols-1 gap-8 md:grid-cols-3">
+          <div className="mb-24 mt-16 grid w-full max-w-3xl grid-cols-1 gap-6 md:grid-cols-3">
             {FEATURES.map((f) => (
               <div
                 key={f.title}
                 className={
-                  "group cursor-default border-4 border-primary p-8 text-left transition-colors " +
+                  "group cursor-default border-4 border-primary p-6 text-left transition-colors " +
                   (f.tone === "yellow"
                     ? "bg-primary-container hover:bg-primary hover:text-white"
                     : f.tone === "red"
@@ -136,8 +136,8 @@ export default function Home() {
                       : "bg-surface hover:bg-tertiary hover:text-white")
                 }
               >
-                <f.icon className="mb-4 size-9" strokeWidth={2.5} />
-                <h3 className="mb-2 text-2xl font-bold uppercase">{f.title}</h3>
+                <f.icon className="mb-3 size-7" strokeWidth={2.5} />
+                <h3 className="mb-2 text-xl font-bold uppercase">{f.title}</h3>
                 <p className="text-sm font-medium uppercase leading-relaxed tracking-tight opacity-80">
                   {f.body}
                 </p>
