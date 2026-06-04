@@ -74,7 +74,9 @@ export function HotelPanel({
                 pricePerNight: price,
                 priceSource,
                 priceCheckedAt,
-                prices: x.prices.map((p, i) => ({ ...p, price: i === 0 ? price : p.price, priceSource: "live" as const })),
+                prices: x.prices.map((p, i) =>
+                  i === 0 ? { ...p, price, priceSource: "live" as const } : p,
+                ),
               }
             : x,
         ) ?? cur,
@@ -180,6 +182,7 @@ export function HotelPanel({
                           : "border-on-surface-variant/40 text-on-surface-variant",
                       )}
                       title={h.priceSource === "live" ? "Live price from a booking site" : "Estimated — open to fetch a live price"}
+                      aria-label={h.priceSource === "live" ? "Live price from a booking site" : "Estimated price"}
                     >
                       {h.priceSource === "live" ? "live" : "est"}
                     </span>
