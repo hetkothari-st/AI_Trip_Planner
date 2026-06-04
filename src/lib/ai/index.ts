@@ -325,6 +325,7 @@ recommended number of days. Order spots into a sensible daily routine (~3 per da
   });
 }
 
+// priceSource / priceCheckedAt intentionally omitted — filled by zod default, not the LLM.
 const activitiesJsonSchema = {
   type: "object",
   properties: {
