@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { z } from "zod";
-import { recommendActivities } from "@/lib/ai";
+import { getActivityProvider } from "@/lib/activities/provider";
 
 export const runtime = "nodejs";
 
@@ -17,7 +17,7 @@ export async function POST(req: Request) {
     return NextResponse.json({ error: "Invalid request" }, { status: 400 });
   }
   const { destination, city, cityLat, cityLng } = parsed.data;
-  const activities = await recommendActivities(destination, city, cityLat, cityLng);
+  const activities = await getActivityProvider().search(destination, city, cityLat, cityLng);
   // Give any activity still missing a location one near the city centre, so it can be
   // paired with the nearest spot in the UI.
   const center = { lat: cityLat ?? 30.0, lng: cityLng ?? 79.0 };
