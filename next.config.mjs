@@ -1,5 +1,6 @@
 /** @type {import('next').NextConfig} */
 const nextConfig = {
+  serverExternalPackages: ["playwright", "playwright-core"],
   images: {
     remotePatterns: [
       { protocol: "https", hostname: "images.unsplash.com" },
