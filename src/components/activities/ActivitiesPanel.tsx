@@ -87,9 +87,14 @@ export function ActivitiesPanel({
           >
             <div className="flex items-start justify-between gap-2">
               <h4 className="text-lg font-bold uppercase leading-tight">{a.name}</h4>
-              <span className="shrink-0 bg-primary px-2 py-1 text-sm font-bold text-primary-container">
-                {formatINR(a.price)}
-                <span className="text-[9px] font-medium">/person</span>
+              <span className="flex shrink-0 flex-col items-end bg-primary px-2 py-1 text-sm font-bold text-primary-container">
+                <span>
+                  {formatINR(a.price)}
+                  <span className="text-[9px] font-medium">/person</span>
+                </span>
+                <span className="text-[8px] font-medium uppercase tracking-wide opacity-80">
+                  {a.priceSource === "live" ? "live price" : "est. price"}
+                </span>
               </span>
             </div>
             <p className="mt-2 flex-1 text-sm font-medium text-on-surface-variant">{a.description}</p>

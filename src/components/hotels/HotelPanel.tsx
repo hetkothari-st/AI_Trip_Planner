@@ -53,6 +53,37 @@ export function HotelPanel({
     }
   }
 
+  // Lazily upgrade a hotel's estimated price to a live scraped one the first time its
+  // comparison panel is opened. Best-effort: failures silently keep the estimate.
+  async function fetchLive(h: Hotel) {
+    if (h.priceSource === "live") return;
+    try {
+      const res = await fetch("/api/price", {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({ name: h.name, city, kind: "hotel", stars: h.stars }),
+      });
+      if (!res.ok) return;
+      const { price, priceSource, priceCheckedAt } = await res.json();
+      if (priceSource !== "live") return;
+      setList((cur) =>
+        cur?.map((x) =>
+          x.id === h.id
+            ? {
+                ...x,
+                pricePerNight: price,
+                priceSource,
+                priceCheckedAt,
+                prices: x.prices.map((p, i) => ({ ...p, price: i === 0 ? price : p.price, priceSource: "live" as const })),
+              }
+            : x,
+        ) ?? cur,
+      );
+    } catch {
+      /* keep estimate */
+    }
+  }
+
   return (
     <div className="space-y-4">
       <p className="text-[11px] font-bold uppercase tracking-wide text-on-surface-variant">
@@ -139,10 +170,20 @@ export function HotelPanel({
                   <p className="flex items-center gap-1 text-[11px] font-medium text-on-surface-variant">
                     <MapPin className="size-3" /> {h.area} · {h.distanceToCenterKm.toFixed(1)} km from centre
                   </p>
-                  <div className="mt-1">
+                  <div className="mt-1 flex items-center gap-1.5">
                     <span className="text-lg font-bold">{formatINR(h.pricePerNight)}</span>
+                    <span
+                      className={cn(
+                        "border px-1 py-0.5 text-[8px] font-bold uppercase tracking-wide",
+                        h.priceSource === "live"
+                          ? "border-tertiary text-tertiary"
+                          : "border-on-surface-variant/40 text-on-surface-variant",
+                      )}
+                      title={h.priceSource === "live" ? "Live price from a booking site" : "Estimated — open to fetch a live price"}
+                    >
+                      {h.priceSource === "live" ? "live" : "est"}
+                    </span>
                     <span className="text-[11px] font-medium text-on-surface-variant">
-                      {" "}
                       /night/room{rooms > 1 ? ` · ${rooms} rooms` : ""} · best on {h.bestPriceSite}
                     </span>
                   </div>
@@ -159,7 +200,11 @@ export function HotelPanel({
 
               {/* price comparison */}
               <button
-                onClick={() => setExpanded(isOpen ? null : h.id)}
+                onClick={() => {
+                  const opening = !isOpen;
+                  setExpanded(opening ? h.id : null);
+                  if (opening) fetchLive(h);
+                }}
                 className="mt-2 flex items-center justify-between px-3 py-2 text-xs font-bold uppercase tracking-wide text-tertiary hover:bg-surface-container"
               >
                 Compare {h.prices.length} sites
