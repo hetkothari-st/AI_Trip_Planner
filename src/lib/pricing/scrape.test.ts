@@ -18,4 +18,9 @@ describe("parsePriceFromText", () => {
   it("ignores absurd values above the ceiling", () => {
     expect(parsePriceFromText("₹9,999,999")).toBeNull();
   });
+
+  it("rejects amounts below the 300 floor and comma-leading junk", () => {
+    expect(parsePriceFromText("₹200")).toBeNull();
+    expect(parsePriceFromText("₹,500")).toBeNull();
+  });
 });

@@ -6,7 +6,7 @@ const DESKTOP_UA =
 
 /** Pull the first plausible INR amount (300..200000) out of arbitrary page text. */
 export function parsePriceFromText(text: string): number | null {
-  const re = /₹\s?([\d,]{3,})/g;
+  const re = /₹\s?(\d[\d,]{2,})/g;
   let m: RegExpExecArray | null;
   while ((m = re.exec(text))) {
     const n = Number(m[1].replace(/,/g, ""));
