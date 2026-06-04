@@ -23,4 +23,7 @@ export const hasReddit = () => env.redditId.length > 0 && env.redditSecret.lengt
 export const hasUnsplash = () => env.unsplashKey.length > 0;
 export const hasGoogle = () => env.googleId.length > 0 && env.googleSecret.length > 0;
 
+// Overpass/Nominatim are keyless; this flag lets us disable real OSM in dev/tests.
+export const hasOverpass = () => process.env.DISABLE_OSM !== "1";
+
 // Map tiles (OpenFreeMap) and routing (OSRM) are key-less — no token needed.

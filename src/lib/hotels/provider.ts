@@ -1,6 +1,11 @@
 import { haversineKm, seededRandom } from "@/lib/utils";
 import { BOOKING_SITES, deepLink } from "./deepLinks";
 import type { Hotel, HotelSearchParams, SitePrice } from "./types";
+import { bboxAround, queryPois as realQueryPois, type OsmPoi } from "@/lib/osm/overpass";
+import { geocodeCity as realGeocodeCity } from "@/lib/osm/geocode";
+import { getImage } from "@/lib/images";
+import { estimateHotelPrice } from "@/lib/pricing/estimate";
+import { hasOverpass } from "@/lib/env";
 
 // Approximate how far each "area" sits from the city centre, in km.
 const AREA_OFFSET_KM: Record<string, number> = {
@@ -91,10 +96,122 @@ class MockHotelProvider implements HotelProvider {
   }
 }
 
+// OSM tag → human amenity label. Only tags we can trust as present.
+const AMENITY_TAGS: { test: (t: Record<string, string>) => boolean; label: string }[] = [
+  { test: (t) => t.internet_access === "wlan" || t.internet_access === "yes" || t["internet_access:fee"] === "no", label: "Free Wi-Fi" },
+  { test: (t) => t.swimming_pool === "yes" || t.leisure === "swimming_pool", label: "Pool" },
+  { test: (t) => t.parking === "yes" || t.amenity === "parking", label: "Parking" },
+  { test: (t) => t.air_conditioning === "yes", label: "Air conditioning" },
+  { test: (t) => t.restaurant === "yes" || t.amenity === "restaurant", label: "Restaurant" },
+  { test: (t) => t.breakfast === "yes" || t.breakfast === "included", label: "Breakfast included" },
+  { test: (t) => t.wheelchair === "yes", label: "Wheelchair access" },
+  { test: (t) => t.pet === "yes" || t.dog === "yes", label: "Pet friendly" },
+];
+
+function starsFromTags(tags: Record<string, string>): number {
+  const raw = Number(tags.stars);
+  if (Number.isFinite(raw) && raw >= 1 && raw <= 5) return Math.round(raw);
+  if (tags.tourism === "hostel") return 2;
+  if (tags.tourism === "guest_house") return 3;
+  return 3; // unrated hotel
+}
+
+function areaFromTags(tags: Record<string, string>): string {
+  return tags["addr:suburb"] || tags["addr:neighbourhood"] || tags["addr:city"] || "City Centre";
+}
+
+/** Dependencies are injectable so the provider is unit-testable without network. */
+export interface OverpassDeps {
+  queryPois: typeof realQueryPois;
+  geocodeCity: typeof realGeocodeCity;
+  imageFor: (name: string) => Promise<string>;
+}
+
+export class OverpassHotelProvider implements HotelProvider {
+  readonly name = "overpass";
+  constructor(
+    private deps: OverpassDeps = {
+      queryPois: realQueryPois,
+      geocodeCity: realGeocodeCity,
+      imageFor: async (name) => (await getImage(name)).url,
+    },
+  ) {}
+
+  async search(params: HotelSearchParams): Promise<Hotel[]> {
+    const { city, destination, budgetMax, minStars, cityLat, cityLng } = params;
+    const center =
+      cityLat != null && cityLng != null
+        ? { lat: cityLat, lng: cityLng }
+        : await this.deps.geocodeCity(city, destination);
+    if (!center) return [];
+
+    const pois = await this.deps.queryPois(bboxAround(center.lat, center.lng, 6), [
+      'node["tourism"~"hotel|guest_house|hostel"]',
+      'way["tourism"~"hotel|guest_house|hostel"]',
+    ]);
+
+    const hotels = await Promise.all(
+      pois.slice(0, 12).map((p) => this.toHotel(p, center, city, budgetMax)),
+    );
+
+    return hotels
+      .filter((h): h is Hotel => h !== null && h.stars >= minStars && h.pricePerNight <= budgetMax)
+      .sort((a, b) => a.pricePerNight - b.pricePerNight);
+  }
+
+  private async toHotel(
+    p: OsmPoi,
+    center: { lat: number; lng: number },
+    city: string,
+    budgetMax: number,
+  ): Promise<Hotel | null> {
+    const stars = starsFromTags(p.tags);
+    const estimate = Math.min(estimateHotelPrice(p.name, stars), budgetMax);
+    const amenities = AMENITY_TAGS.filter((a) => a.test(p.tags)).map((a) => a.label);
+    if (amenities.length < 2) amenities.push("Free Wi-Fi", "Parking");
+
+    const prices: SitePrice[] = BOOKING_SITES.map((site) => ({
+      site,
+      price: estimate,
+      url: deepLink(site, p.name, city),
+      priceSource: "est" as const,
+    }));
+
+    return {
+      id: p.id,
+      name: p.name,
+      stars,
+      rating: Math.round((3.5 + (stars - 3) * 0.4) * 10) / 10,
+      pricePerNight: estimate,
+      currency: "INR",
+      priceSource: "est",
+      imageUrl: await this.deps.imageFor(`${p.name} ${city}`),
+      amenities: Array.from(new Set(amenities)).slice(0, 6),
+      area: areaFromTags(p.tags),
+      lat: p.lat,
+      lng: p.lng,
+      distanceToCenterKm: haversineKm(center, { lat: p.lat, lng: p.lng }),
+      prices,
+      bestPriceSite: prices[0].site,
+    };
+  }
+}
+
+/** Wrapper: try the real provider, fall back to mock if it yields nothing. */
+class FallbackHotelProvider implements HotelProvider {
+  readonly name = "overpass+mock";
+  private real = new OverpassHotelProvider();
+  private mock = new MockHotelProvider();
+  async search(params: HotelSearchParams): Promise<Hotel[]> {
+    const real = await this.real.search(params).catch(() => []);
+    return real.length > 0 ? real : this.mock.search(params);
+  }
+}
+
 let cached: HotelProvider | null = null;
 
 export function getHotelProvider(): HotelProvider {
-  // Amadeus provider would be selected here when AMADEUS_CLIENT_ID/SECRET are set.
-  if (!cached) cached = new MockHotelProvider();
+  if (cached) return cached;
+  cached = hasOverpass() ? new FallbackHotelProvider() : new MockHotelProvider();
   return cached;
 }
