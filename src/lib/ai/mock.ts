@@ -352,6 +352,7 @@ export function mockActivities(
       durationMin: t.durationMin,
       price: t.price,
       rating: Math.round((4 + seededRandom(`${city}-actr-${i}`)) * 10) / 10,
+      priceSource: "est" as const,
       // scatter within ~5 km of the centre so each pairs with a nearby spot
       lat: center.lat + (seededRandom(`${city}-actlat-${i}`) - 0.5) * 0.09,
       lng: center.lng + (seededRandom(`${city}-actlng-${i}`) - 0.5) * 0.09,

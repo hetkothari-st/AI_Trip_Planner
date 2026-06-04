@@ -60,6 +60,7 @@ class MockHotelProvider implements HotelProvider {
         site,
         price: Math.round((headline * (1 + (r(`site${si}`) - 0.4) * 0.18)) / 10) * 10,
         url: deepLink(site, `${NAME_PREFIX[i % NAME_PREFIX.length]} ${city} ${NAME_SUFFIX[i % NAME_SUFFIX.length]}`, city),
+        priceSource: "est" as const,
       })).sort((a, b) => a.price - b.price);
 
       const amenities = AMENITY_POOL.filter((_, ai) => r(`am${ai}`) > 0.5).slice(0, 6);
@@ -72,6 +73,7 @@ class MockHotelProvider implements HotelProvider {
         rating: Math.round((3.6 + r("rating") * 1.4) * 10) / 10,
         pricePerNight: prices[0].price,
         currency: "INR",
+        priceSource: "est" as const,
         imageUrl: `https://picsum.photos/seed/${city}-hotel-${i}/640/400`,
         amenities: Array.from(new Set(amenities)),
         area,

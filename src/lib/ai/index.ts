@@ -364,7 +364,7 @@ a per-person price in INR, and a rating out of 5.`,
     jsonSchema: activitiesJsonSchema,
     mock: () => ({ activities: mockActivities(destination, city, cityLat, cityLng) }),
   });
-  return res.activities;
+  return res.activities as Activity[];
 }
 
 const notablePlacesJsonSchema = {

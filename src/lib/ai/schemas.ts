@@ -109,6 +109,8 @@ export const ActivitySchema = z.object({
   durationMin: z.number().int().min(15),
   price: z.number().min(0), // per person, INR
   rating: z.number().min(0).max(5),
+  priceSource: z.enum(["live", "est"]).default("est"),
+  priceCheckedAt: z.number().optional(),
   // Approximate location, for pairing an activity with the nearest spot.
   lat: z.number().optional(),
   lng: z.number().optional(),

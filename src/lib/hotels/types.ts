@@ -3,6 +3,7 @@ export interface SitePrice {
   site: string; // "MakeMyTrip" | "Goibibo" | ...
   price: number; // per night, INR
   url: string; // deep link to that site's search/listing
+  priceSource: "live" | "est"; // was this price scraped live or estimated?
 }
 
 export interface Hotel {
@@ -12,6 +13,8 @@ export interface Hotel {
   rating: number; // user rating /5
   pricePerNight: number; // headline (best) price, INR
   currency: string;
+  priceSource: "live" | "est"; // provenance of pricePerNight
+  priceCheckedAt?: number; // epoch ms when a live price was fetched
   imageUrl: string;
   amenities: string[];
   area: string;

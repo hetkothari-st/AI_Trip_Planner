@@ -4,6 +4,7 @@ import type { Hotel } from "@/lib/hotels/types";
 
 const hotel = (price: number): Hotel => ({
   id: "h", name: "Test Inn", stars: 4, rating: 4.2, pricePerNight: price, currency: "INR",
+  priceSource: "est",
   imageUrl: "", amenities: [], area: "", lat: 30, lng: 79, distanceToCenterKm: 1,
   prices: [], bestPriceSite: "MakeMyTrip",
 });
@@ -13,7 +14,7 @@ describe("computeCost", () => {
     const cost = computeCost({
       places: [{ id: "a", name: "Nainital", days: 2 }],
       hotels: { a: hotel(3000) },
-      activities: { a: [{ id: "x", name: "Trek", description: "", provider: "", durationMin: 120, price: 1000, rating: 4.5 }] },
+      activities: { a: [{ id: "x", name: "Trek", description: "", provider: "", durationMin: 120, price: 1000, rating: 4.5, priceSource: "est" as const }] },
       route: { legs: [], totalDistanceKm: 100, totalDurationSec: 9000, geometry: [], source: "estimate" },
       travellers: 2,
       perDiemFood: 700,
