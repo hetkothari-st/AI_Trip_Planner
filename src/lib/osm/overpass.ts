@@ -19,8 +19,7 @@ interface OverpassElement {
 
 const OVERPASS_URL = "https://overpass-api.de/api/interpreter";
 const UA = "VoyagerTripPlanner/1.0 (https://aitrip.up.railway.app)";
-// TTL cache; exported so tests can clear it between cases if needed.
-export const _cache = new TTLCache<OsmPoi[]>(24 * 60 * 60 * 1000, 300);
+const cache = new TTLCache<OsmPoi[]>(24 * 60 * 60 * 1000, 300);
 
 /** [south, west, north, east] box of ~radiusKm around a centre point. */
 export function bboxAround(lat: number, lng: number, radiusKm: number): [number, number, number, number] {
@@ -55,11 +54,8 @@ export async function queryPois(
 ): Promise<OsmPoi[]> {
   const box = bbox.join(",");
   const key = `${box}|${selectors.join("|")}|${limit}`;
-  // Skip cache in test environments so test isolation works without module reloading.
-  if (!process.env.VITEST) {
-    const hit = _cache.get(key);
-    if (hit) return hit;
-  }
+  const hit = cache.get(key);
+  if (hit) return hit;
 
   const body = `[out:json][timeout:25];(${selectors.map((s) => `${s}(${box});`).join("")});out center tags ${limit};`;
   try {
@@ -70,7 +66,7 @@ export async function queryPois(
     });
     if (!res.ok) throw new Error(`overpass ${res.status}`);
     const pois = parseElements(await res.json());
-    if (!process.env.VITEST) _cache.set(key, pois);
+    cache.set(key, pois);
     return pois;
   } catch (err) {
     console.error(`[osm] overpass query failed:`, err);

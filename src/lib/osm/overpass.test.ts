@@ -40,7 +40,8 @@ describe("queryPois", () => {
   });
 
   it("returns [] on a non-ok response", async () => {
+    // Distinct selector → distinct cache key, so the previous test's cached result is not reused.
     vi.stubGlobal("fetch", vi.fn(async () => new Response("nope", { status: 504 })));
-    expect(await queryPois(bboxAround(30, 79, 5), ['node["tourism"="hotel"]'])).toEqual([]);
+    expect(await queryPois(bboxAround(30, 79, 5), ['node["tourism"="guest_house"]'])).toEqual([]);
   });
 });
