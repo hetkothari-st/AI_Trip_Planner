@@ -166,26 +166,36 @@ export class OverpassHotelProvider implements HotelProvider {
     budgetMax: number,
   ): Promise<Hotel | null> {
     const stars = starsFromTags(p.tags);
-    const estimate = Math.min(estimateHotelPrice(p.name, stars), budgetMax);
+    const estimate = estimateHotelPrice(p.name, stars);
     const amenities = AMENITY_TAGS.filter((a) => a.test(p.tags)).map((a) => a.label);
     if (amenities.length < 2) amenities.push("Free Wi-Fi", "Parking");
 
+    // Spread the estimate across booking sites with a small seeded jitter so the price
+    // comparison panel isn't monotone; the cheapest site defines the headline price.
     const prices: SitePrice[] = BOOKING_SITES.map((site) => ({
       site,
-      price: estimate,
+      price: Math.round((estimate * (1 + (seededRandom(`${p.id}-${site}`) - 0.4) * 0.18)) / 10) * 10,
       url: deepLink(site, p.name, city),
       priceSource: "est" as const,
-    }));
+    })).sort((a, b) => a.price - b.price);
+
+    // Resolve a photo, but never let one image failure drop the whole hotel list.
+    let imageUrl: string;
+    try {
+      imageUrl = await this.deps.imageFor(`${p.name} ${city}`);
+    } catch {
+      imageUrl = `https://picsum.photos/seed/${encodeURIComponent(p.id)}/640/400`;
+    }
 
     return {
       id: p.id,
       name: p.name,
       stars,
       rating: Math.round((3.5 + (stars - 3) * 0.4) * 10) / 10,
-      pricePerNight: estimate,
+      pricePerNight: prices[0].price,
       currency: "INR",
       priceSource: "est",
-      imageUrl: await this.deps.imageFor(`${p.name} ${city}`),
+      imageUrl,
       amenities: Array.from(new Set(amenities)).slice(0, 6),
       area: areaFromTags(p.tags),
       lat: p.lat,
