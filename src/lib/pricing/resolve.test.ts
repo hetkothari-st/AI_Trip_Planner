@@ -42,11 +42,13 @@ describe("resolvePrice", () => {
     expect(r.price).toBe(5000);
   });
 
-  it("caches the first result for a key (scraper called once)", async () => {
+  it("caches the first result for a key (scraper called once, same value returned)", async () => {
     const scrape = vi.fn(async () => 1500);
     const args = { key: "cache-1", name: "H", city: "C", kind: "hotel" as const, estimate: () => 1, scrape };
-    await resolvePrice(args);
-    await resolvePrice(args);
+    const r1 = await resolvePrice(args);
+    const r2 = await resolvePrice(args);
     expect(scrape).toHaveBeenCalledOnce();
+    expect(r2).toEqual(r1);
+    expect(r2).toMatchObject({ price: 1500, priceSource: "live" });
   });
 });
