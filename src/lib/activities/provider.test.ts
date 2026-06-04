@@ -25,7 +25,7 @@ describe("OverpassActivityProvider", () => {
     expect(acts[0].lat).toBeCloseTo(30.13);
   });
 
-  it("falls back to the LLM when OSM yields too few activities", async () => {
+  it("falls back to the LLM when OSM returns zero activities", async () => {
     const llm: Activity[] = [
       { id: "llm-1", name: "Cooking Class", description: "d", provider: "p", durationMin: 120, price: 900, rating: 4.6, priceSource: "est" },
     ];

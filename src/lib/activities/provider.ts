@@ -13,7 +13,7 @@ const ACTIVITY_SELECTORS = [
 ];
 
 function durationFor(tags: Record<string, string>): number {
-  if (/rafting|paraglid|climb/.test(JSON.stringify(tags))) return 180;
+  if (/rafting|paraglid|climb/.test(tags.sport ?? "")) return 180;
   if (tags.tourism === "viewpoint") return 45;
   return 120;
 }
