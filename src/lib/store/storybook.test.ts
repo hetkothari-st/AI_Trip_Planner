@@ -16,6 +16,7 @@ describe("useStorybook", () => {
   it("loads a book", () => {
     useStorybook.getState().setBook(book as any);
     expect(useStorybook.getState().book?.title).toBe("Goa");
+    expect(useStorybook.getState().dirty).toBe(false);
   });
   it("adds an element to a page", () => {
     useStorybook.getState().setBook(book as any);
@@ -30,6 +31,7 @@ describe("useStorybook", () => {
     const id = useStorybook.getState().addElement("p1", { type: "text", x: 0, y: 0, w: 10, h: 10 });
     useStorybook.getState().updateElement("p1", id, { x: 50 });
     expect(useStorybook.getState().book!.pages[0].elements[0].x).toBe(50);
+    expect(useStorybook.getState().dirty).toBe(true);
   });
   it("removes an element", () => {
     useStorybook.getState().setBook(book as any);
