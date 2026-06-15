@@ -22,7 +22,7 @@ type Corner = "nw" | "ne" | "sw" | "se";
 
 // A drag gesture in flight: what we're doing + the element snapshot at gesture start.
 type Drag =
-  | { kind: "move"; id: string; startX: number; startY: number; elX: number; elY: number }
+  | { kind: "move"; id: string; startX: number; startY: number; elX: number; elY: number; elW: number; elH: number }
   | { kind: "resize"; id: string; corner: Corner; startX: number; startY: number; elX: number; elY: number; elW: number; elH: number }
   | { kind: "rotate"; id: string; cx: number; cy: number };
 
@@ -47,6 +47,11 @@ export default function StorybookEditorPage() {
 
   const canvasRef = useRef<HTMLDivElement | null>(null);
   const dragRef = useRef<Drag | null>(null);
+
+  // Live-value mirrors so the window pointer listeners can be registered once
+  // and still read the current active page / updater without re-subscribing.
+  const activePageRef = useRef<StoryPage | null>(null);
+  const updateElementRef = useRef(updateElement);
 
   // ── Load the book on mount ────────────────────────────────────────────────
   useEffect(() => {
@@ -99,23 +104,31 @@ export default function StorybookEditorPage() {
 
   const selectedEl = activePage?.elements.find((e) => e.id === selectedId) ?? null;
 
+  // Keep the live-value refs read by the pointer listeners in sync.
+  useEffect(() => {
+    activePageRef.current = activePage;
+  }, [activePage]);
+  useEffect(() => {
+    updateElementRef.current = updateElement;
+  }, [updateElement]);
+
   // ── Pointer gesture wiring (move / resize / rotate) ───────────────────────
+  // Registered ONCE; everything live is read from refs so dragging doesn't churn
+  // the listeners (re-registering mid-drag could drop a pointermove).
   useEffect(() => {
     function onMove(e: PointerEvent) {
       const drag = dragRef.current;
       const rect = canvasRef.current?.getBoundingClientRect();
-      const pageId = activePage?.id;
+      const pageId = activePageRef.current?.id;
+      const updateEl = updateElementRef.current;
       if (!drag || !rect || !pageId) return;
 
       if (drag.kind === "move") {
         const dxPct = pctDelta(e.clientX - drag.startX, rect.width);
         const dyPct = pctDelta(e.clientY - drag.startY, rect.height);
-        const el = activePage?.elements.find((x) => x.id === drag.id);
-        const w = el?.w ?? 0;
-        const h = el?.h ?? 0;
-        updateElement(pageId, drag.id, {
-          x: clamp(drag.elX + dxPct, 0, 100 - w),
-          y: clamp(drag.elY + dyPct, 0, 100 - h),
+        updateEl(pageId, drag.id, {
+          x: clamp(drag.elX + dxPct, 0, 100 - drag.elW),
+          y: clamp(drag.elY + dyPct, 0, 100 - drag.elH),
         });
         return;
       }
@@ -141,14 +154,14 @@ export default function StorybookEditorPage() {
         } else {
           h = clamp(drag.elH + dyPct, MIN_SIZE, 100 - drag.elY);
         }
-        updateElement(pageId, drag.id, { x, y, w, h });
+        updateEl(pageId, drag.id, { x, y, w, h });
         return;
       }
 
       if (drag.kind === "rotate") {
         const angle = (Math.atan2(e.clientY - drag.cy, e.clientX - drag.cx) * 180) / Math.PI;
         // Handle sits above the element, so add 90° to make "up" = 0°.
-        updateElement(pageId, drag.id, { rotation: Math.round(angle + 90) });
+        updateEl(pageId, drag.id, { rotation: Math.round(angle + 90) });
         return;
       }
     }
@@ -163,7 +176,7 @@ export default function StorybookEditorPage() {
       window.removeEventListener("pointermove", onMove);
       window.removeEventListener("pointerup", onUp);
     };
-  }, [activePage, updateElement]);
+  }, []);
 
   // ── Delete key removes the selected element (unless editing text) ──────────
   useEffect(() => {
@@ -199,7 +212,7 @@ export default function StorybookEditorPage() {
   const handleDownload = useCallback(() => {
     if (!book) return;
     useStorybook.getState().save();
-    window.location.href = `/api/storybook/${book.id}/pdf`;
+    window.location.href = `/api/storybooks/${book.id}/pdf`;
   }, [book]);
 
   const handleOrder = useCallback(() => {
@@ -280,6 +293,7 @@ export default function StorybookEditorPage() {
                   onClick={() => {
                     setActivePageId(page.id);
                     setSelectedId(null);
+                    setEditingId(null);
                   }}
                   className={
                     "block w-full border-2 p-1 text-left transition-colors " +
@@ -396,7 +410,7 @@ function ElementOverlay({
     if (editing) return;
     e.stopPropagation();
     onSelect();
-    dragRef.current = { kind: "move", id: el.id, startX: e.clientX, startY: e.clientY, elX: el.x, elY: el.y };
+    dragRef.current = { kind: "move", id: el.id, startX: e.clientX, startY: e.clientY, elX: el.x, elY: el.y, elW: el.w, elH: el.h };
   };
 
   const startResize = (corner: Corner) => (e: React.PointerEvent) => {
