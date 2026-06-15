@@ -7,6 +7,7 @@ import { Plus, Trash2 } from "lucide-react";
 import { useStorybook } from "@/lib/store/storybook";
 import { PageCanvas } from "@/components/storybook/PageCanvas";
 import { EditorToolbar } from "@/components/storybook/EditorToolbar";
+import { PhotoUpload } from "@/components/storybook/PhotoUpload";
 import { getTheme } from "@/lib/storybook/templates/themes";
 import { SIZE_DIMS, type ElementType, type SizePreset, type StoryElement, type StoryPage } from "@/lib/storybook/types";
 
@@ -362,6 +363,12 @@ export default function StorybookEditorPage() {
                     updateElement(activePage.id, el.id, { props: { ...el.props, text } });
                     setEditingId(null);
                   }}
+                  onUploaded={(url, publicId) => {
+                    const props = el.props as Record<string, unknown>;
+                    updateElement(activePage.id, el.id, {
+                      props: { ...props, url, publicId, fit: props.fit ?? "cover" },
+                    });
+                  }}
                   onDelete={() => {
                     removeElement(activePage.id, el.id);
                     setSelectedId(null);
@@ -386,6 +393,7 @@ function ElementOverlay({
   onSelect,
   onStartEdit,
   onCommitText,
+  onUploaded,
   onDelete,
 }: {
   el: StoryElement;
@@ -396,6 +404,7 @@ function ElementOverlay({
   onSelect: () => void;
   onStartEdit: () => void;
   onCommitText: (text: string) => void;
+  onUploaded: (url: string, publicId: string) => void;
   onDelete: () => void;
 }) {
   const corners: Corner[] = ["nw", "ne", "sw", "se"];
@@ -441,6 +450,11 @@ function ElementOverlay({
 
   const isText = el.type === "text";
   const text = typeof (el.props as Record<string, unknown>)?.text === "string" ? ((el.props as Record<string, string>).text) : "";
+
+  // Empty photo/ticket slot: media element with no uploaded image yet.
+  const isMedia = el.type === "photo" || el.type === "ticket";
+  const hasUrl = typeof (el.props as Record<string, unknown>)?.url === "string" && (el.props as Record<string, string>).url.length > 0;
+  const isEmptySlot = isMedia && !hasUrl;
 
   return (
     <div
@@ -505,6 +519,23 @@ function ElementOverlay({
             boxSizing: "border-box",
           }}
         />
+      )}
+
+      {/* empty photo/ticket slot: upload control (selected only) */}
+      {selected && !editing && isEmptySlot && (
+        <div
+          onPointerDown={(e) => e.stopPropagation()}
+          onClick={(e) => e.stopPropagation()}
+          style={{
+            position: "absolute",
+            inset: 0,
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
+          }}
+        >
+          <PhotoUpload kind={el.type === "ticket" ? "ticket" : "photo"} onUploaded={onUploaded} />
+        </div>
       )}
 
       {selected && !editing && (
