@@ -75,13 +75,13 @@ export default function NewStorybookPage() {
       }
       if (!res.ok) {
         setError("Couldn't create your storybook. Please try again.");
-        setCreating(false);
         return;
       }
       const { id } = (await res.json()) as { id: string };
       router.push(`/storybooks/${id}/edit`);
     } catch {
       setError("Something went wrong. Please try again.");
+    } finally {
       setCreating(false);
     }
   }
