@@ -9,6 +9,7 @@ import { AuthButton } from "@/components/auth/AuthButton";
 const LINKS = [
   { label: "Plan", href: "/plan" },
   { label: "My Trips", href: "/trips" },
+  { label: "Storybooks", href: "/storybooks" },
   { label: "Travel History", href: "/travels" },
 ] as const;
 
