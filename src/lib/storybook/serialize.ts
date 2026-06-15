@@ -3,7 +3,12 @@ import { SIZE_DIMS } from "./types";
 import { getTheme } from "./templates/themes";
 
 function esc(s: string): string {
-  return s.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
+  return s
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    // Also escape double-quotes so a value can't break out of an HTML attribute.
+    .replace(/"/g, "&quot;");
 }
 
 function elHtml(e: StoryElement): string {
