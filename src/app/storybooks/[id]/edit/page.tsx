@@ -212,9 +212,16 @@ export default function StorybookEditorPage() {
     setSelectedId(null);
   }, [activePage, selectedId, removeElement]);
 
-  const handleDownload = useCallback(() => {
+  const handleDownload = useCallback(async () => {
     if (!book) return;
-    useStorybook.getState().save();
+    await fetch(`/api/storybooks/${book.id}`, {
+      method: "PUT",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({
+        title: book.title, theme: book.theme, sizePreset: book.sizePreset,
+        coverUrl: book.coverUrl, pages: book.pages, status: book.status,
+      }),
+    }).catch(() => {});
     window.location.href = `/api/storybooks/${book.id}/pdf`;
   }, [book]);
 

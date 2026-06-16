@@ -10,13 +10,13 @@ const slot = (x: number, y: number, w: number, h: number, kind: "photo" | "ticke
 
 // 7 layout archetypes — each returns the pages for one template in the given theme.
 const archetypes: Record<string, (paper: string) => StoryPage[]> = {
-  cover: (bg) => [{ id: "p", bg, elements: [slot(0, 0, 100, 70), txt(10, 74, 80, 14, "Our Trip")] }],
-  hero: (bg) => [{ id: "p", bg, elements: [slot(0, 0, 100, 100), txt(8, 80, 84, 12, "Caption", 22)] }],
-  grid: (bg) => [{ id: "p", bg, elements: [slot(4, 4, 44, 44), slot(52, 4, 44, 44), slot(4, 52, 44, 44), slot(52, 52, 44, 44)] }],
-  polaroid: (bg) => [{ id: "p", bg, elements: [slot(6, 8, 38, 40, "photo", -6), slot(52, 14, 38, 40, "photo", 5), slot(28, 52, 38, 40, "photo", -2)] }],
-  journal: (bg) => [{ id: "p", bg, elements: [slot(6, 6, 50, 88), txt(60, 10, 36, 80, "Write your memory here...", 18)] }],
-  ticket: (bg) => [{ id: "p", bg, elements: [slot(8, 8, 84, 36, "ticket"), slot(8, 50, 84, 36, "ticket")] }],
-  map: (bg) => [{ id: "p", bg, elements: [slot(0, 0, 100, 60), txt(8, 64, 84, 24, "Where we went", 20)] }],
+  cover: (bg) => [{ id: "p0", bg, elements: [slot(0, 0, 100, 70), txt(10, 74, 80, 14, "Our Trip")] }],
+  hero: (bg) => [{ id: "p0", bg, elements: [slot(0, 0, 100, 100), txt(8, 80, 84, 12, "Caption", 22)] }],
+  grid: (bg) => [{ id: "p0", bg, elements: [slot(4, 4, 44, 44), slot(52, 4, 44, 44), slot(4, 52, 44, 44), slot(52, 52, 44, 44)] }],
+  polaroid: (bg) => [{ id: "p0", bg, elements: [slot(6, 8, 38, 40, "photo", -6), slot(52, 14, 38, 40, "photo", 5), slot(28, 52, 38, 40, "photo", -2)] }],
+  journal: (bg) => [{ id: "p0", bg, elements: [slot(6, 6, 50, 88), txt(60, 10, 36, 80, "Write your memory here...", 18)] }],
+  ticket: (bg) => [{ id: "p0", bg, elements: [slot(8, 8, 84, 36, "ticket"), slot(8, 50, 84, 36, "ticket")] }],
+  map: (bg) => [{ id: "p0", bg, elements: [slot(0, 0, 100, 60), txt(8, 64, 84, 24, "Where we went", 20)] }],
 };
 
 const archetypeOrder = ["cover", "hero", "grid", "polaroid", "journal", "ticket", "map"];
