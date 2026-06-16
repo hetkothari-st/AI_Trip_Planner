@@ -8,6 +8,7 @@ import { useStorybook } from "@/lib/store/storybook";
 import { PageCanvas } from "@/components/storybook/PageCanvas";
 import { EditorToolbar } from "@/components/storybook/EditorToolbar";
 import { PhotoUpload } from "@/components/storybook/PhotoUpload";
+import { OrderModal } from "@/components/storybook/OrderModal";
 import { getTheme } from "@/lib/storybook/templates/themes";
 import { SIZE_DIMS, type ElementType, type SizePreset, type StoryElement, type StoryPage } from "@/lib/storybook/types";
 
@@ -45,6 +46,7 @@ export default function StorybookEditorPage() {
   const [activePageId, setActivePageId] = useState<string | null>(null);
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [editingId, setEditingId] = useState<string | null>(null);
+  const [orderOpen, setOrderOpen] = useState(false);
 
   const canvasRef = useRef<HTMLDivElement | null>(null);
   const dragRef = useRef<Drag | null>(null);
@@ -217,8 +219,7 @@ export default function StorybookEditorPage() {
   }, [book]);
 
   const handleOrder = useCallback(() => {
-    // TODO: wire OrderModal in Task 17
-    window.alert("Physical printing coming soon");
+    setOrderOpen(true);
   }, []);
 
   // ── Page-strip handlers ───────────────────────────────────────────────────
@@ -280,6 +281,8 @@ export default function StorybookEditorPage() {
         onOrder={handleOrder}
         selectedId={selectedId}
       />
+
+      <OrderModal storybookId={book.id} open={orderOpen} onOpenChange={setOrderOpen} />
 
       <div className="flex min-h-0 flex-1">
         {/* Page thumbnails strip */}
