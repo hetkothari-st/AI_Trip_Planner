@@ -175,3 +175,33 @@ model Activity {
 
   @@index([tripStopId])
 }
+
+// Travel storybook — a customizable photo-book the user builds from a trip's memories.
+model Storybook {
+  id         String   @id @default(cuid())
+  userId     String
+  title      String
+  tripId     String?
+  theme      String
+  sizePreset String   @default("square")
+  coverUrl   String?
+  pages      Json     @default("[]")
+  status     String   @default("draft")
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+
+  @@index([userId])
+}
+
+// Print-order intent (stub — no payment / fulfillment in v1).
+model PrintOrder {
+  id          String   @id @default(cuid())
+  storybookId String
+  userId      String
+  email       String
+  options     Json     @default("{}")
+  status      String   @default("requested")
+  createdAt   DateTime @default(now())
+
+  @@index([userId])
+}

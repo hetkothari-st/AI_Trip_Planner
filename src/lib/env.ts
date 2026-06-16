@@ -14,6 +14,9 @@ export const env = {
   authSecret: process.env.AUTH_SECRET ?? "",
   googleId: process.env.GOOGLE_CLIENT_ID ?? "",
   googleSecret: process.env.GOOGLE_CLIENT_SECRET ?? "",
+  cloudinaryCloud: process.env.CLOUDINARY_CLOUD_NAME ?? "",
+  cloudinaryKey: process.env.CLOUDINARY_API_KEY ?? "",
+  cloudinarySecret: process.env.CLOUDINARY_API_SECRET ?? "",
 };
 
 export const hasAnthropic = () => env.anthropicKey.length > 0;
@@ -22,6 +25,8 @@ export const hasYouTube = () => env.youtubeKey.length > 0;
 export const hasReddit = () => env.redditId.length > 0 && env.redditSecret.length > 0;
 export const hasUnsplash = () => env.unsplashKey.length > 0;
 export const hasGoogle = () => env.googleId.length > 0 && env.googleSecret.length > 0;
+export const hasCloudinary = () =>
+  env.cloudinaryCloud.length > 0 && env.cloudinaryKey.length > 0 && env.cloudinarySecret.length > 0;
 
 // Overpass/Nominatim are keyless; this flag lets us disable real OSM in dev/tests.
 export const hasOverpass = () => process.env.DISABLE_OSM !== "1";
