@@ -18,6 +18,9 @@ import { TopNav } from "@/components/chrome/TopNav";
 import { useTrips, type SavedTrip } from "@/lib/store/trips";
 import { snapshotToPages } from "@/lib/storybook/seed";
 import { listTemplates, applyTemplate, getTheme, type TemplatePreset } from "@/lib/storybook/templates";
+import { PageCanvas } from "@/components/storybook/PageCanvas";
+import { withSamplePhotos } from "@/lib/storybook/sample";
+import { SIZE_DIMS } from "@/lib/storybook/types";
 
 type Step = "source" | "template";
 
@@ -270,6 +273,14 @@ function TemplateCard({
   onSelect: () => void;
 }) {
   const theme = getTheme(preset.themeId);
+  // A real scaled render of the template's first page, with sample photos dropped
+  // into the empty slots, so each card previews its own layout + theme colors.
+  const PREVIEW_PX = 150;
+  const previewPage = useMemo(
+    () => withSamplePhotos(preset.pages[0], preset.id),
+    [preset],
+  );
+  const scale = PREVIEW_PX / SIZE_DIMS.square.w;
   return (
     <button
       onClick={onSelect}
@@ -280,15 +291,15 @@ function TemplateCard({
       )}
     >
       <div
-        className="relative flex h-40 items-center justify-center border-b-4 border-primary p-4"
-        style={{ backgroundColor: theme.palette.paper }}
+        className="relative flex h-44 items-center justify-center overflow-hidden border-b-4 border-primary p-3"
+        style={{ backgroundColor: theme.palette.bg }}
       >
-        <span
-          className="text-center text-base font-bold uppercase tracking-tight"
-          style={{ color: theme.palette.ink }}
+        <div
+          className="border-2 border-primary/40 shadow-md"
+          style={{ width: PREVIEW_PX, height: PREVIEW_PX }}
         >
-          {preset.name}
-        </span>
+          <PageCanvas page={previewPage} theme={theme} sizePreset="square" scale={scale} />
+        </div>
         {selected && (
           <span className="absolute right-2 top-2 flex size-6 items-center justify-center border-2 border-primary bg-primary text-white">
             <Check className="size-4" strokeWidth={3} />
