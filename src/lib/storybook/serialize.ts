@@ -1,6 +1,6 @@
 import type { Storybook, StoryElement } from "./types";
 import { SIZE_DIMS } from "./types";
-import { getTheme } from "./templates/themes";
+import { getTheme, type Theme } from "./templates/themes";
 
 function esc(s: string): string {
   return s
@@ -11,7 +11,7 @@ function esc(s: string): string {
     .replace(/"/g, "&quot;");
 }
 
-function elHtml(e: StoryElement): string {
+function elHtml(e: StoryElement, theme: Theme): string {
   const box = `position:absolute;left:${e.x}%;top:${e.y}%;width:${e.w}%;height:${e.h}%;transform:rotate(${e.rotation}deg);z-index:${e.z};`;
   const p = e.props as Record<string, any>;
   if (e.type === "photo" || e.type === "ticket") {
@@ -20,10 +20,11 @@ function elHtml(e: StoryElement): string {
     return `<div style="${box}overflow:hidden"><img src="${esc(String(p.url))}" style="width:100%;height:100%;object-fit:${fit}"/></div>`;
   }
   if (e.type === "text") {
-    const style = `${box}font-size:${p.size ?? 16}px;color:${esc(String(p.color ?? "#1a1a1a"))};text-align:${p.align ?? "left"};`;
+    // Omitted colors inherit the theme (text -> ink) so seeded pages match their theme.
+    const style = `${box}font-size:${p.size ?? 16}px;color:${esc(String(p.color ?? theme.palette.ink))};text-align:${p.align ?? "left"};`;
     return `<div style="${style}">${esc(String(p.text ?? ""))}</div>`;
   }
-  return `<div style="${box}background:${esc(String(p.color ?? "#ffcc00"))}"></div>`;
+  return `<div style="${box}background:${esc(String(p.color ?? theme.palette.accent))}"></div>`;
 }
 
 export function bookToHtml(book: Storybook): string {
@@ -32,8 +33,8 @@ export function bookToHtml(book: Storybook): string {
   const pages = book.pages
     .map(
       (pg) =>
-        `<section class="page" style="position:relative;width:${dims.w}px;height:${dims.h}px;background:${pg.bg};page-break-after:always;overflow:hidden;font-family:${theme.fonts.body}">` +
-        pg.elements.map(elHtml).join("") +
+        `<section class="page" style="position:relative;width:${dims.w}px;height:${dims.h}px;background:${pg.bg || theme.palette.bg};page-break-after:always;overflow:hidden;font-family:${theme.fonts.body}">` +
+        pg.elements.map((el) => elHtml(el, theme)).join("") +
         `</section>`,
     )
     .join("");

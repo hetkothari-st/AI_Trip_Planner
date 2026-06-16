@@ -29,7 +29,7 @@ export function PageCanvas({
         position: "relative",
         width: dims.w * scale,
         height: dims.h * scale,
-        background: page.bg || theme.palette.paper,
+        background: page.bg || theme.palette.bg,
         overflow: "hidden",
         fontFamily: theme.fonts.body,
       }}
