@@ -62,7 +62,7 @@ export default function NewStorybookPage() {
       theme: preset.themeId,
       sizePreset: "square" as const,
       ...(source
-        ? { tripId: source.id, pages: snapshotToPages(source.snapshot) }
+        ? { tripId: source.id, pages: snapshotToPages(source.snapshot, preset.category) }
         : { pages: applyTemplate(preset) }),
     };
 

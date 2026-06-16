@@ -30,4 +30,19 @@ describe("snapshotToPages", () => {
     expect(blankPages()).toHaveLength(1);
     expect(blankPages()[0].elements).toHaveLength(0);
   });
+  it("lays places out per archetype: grid packs more per page than hero", () => {
+    const four = {
+      destination: "X",
+      order: ["a", "b", "c", "d"],
+      selected: {
+        a: { id: "a", name: "A", imageUrl: "u1" }, b: { id: "b", name: "B", imageUrl: "u2" },
+        c: { id: "c", name: "C", imageUrl: "u3" }, d: { id: "d", name: "D", imageUrl: "u4" },
+      },
+    } as any;
+    // grid groups 4 places onto one page; hero is one place per page → more pages.
+    expect(snapshotToPages(four, "grid").length).toBeLessThan(snapshotToPages(four, "hero").length);
+  });
+  it("seeded pages omit bg so they inherit the theme", () => {
+    expect(pages.every((p) => p.bg === "")).toBe(true);
+  });
 });
